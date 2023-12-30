@@ -7,6 +7,7 @@ build
 .sw[a-p]
 tags
 *~
+*.swp
 
 # ibex_tracer log file
 trace_core_*.log
