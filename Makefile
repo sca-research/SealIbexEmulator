@@ -115,3 +115,6 @@ test-cfg:
 .PHONY: python-lint
 python-lint:
 	$(MAKE) -C util lint
+
+ctags:
+	ctags --c++-kinds=+p --fields=+iaS --extras=+q --language-force=C++ -R *
