@@ -1,6 +1,8 @@
 // Copyright lowRISC contributors.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
+#ifndef _IBEX_SIMPLE_SYSTEM_H
+#define _IBEX_SIMPLE_SYSTEM_H
 
 #include "verilated_toplevel.h"
 #include "verilator_memutil.h"
@@ -24,3 +26,4 @@ class SimpleSystem {
   virtual void Run();
   virtual bool Finish();
 };
+#endif

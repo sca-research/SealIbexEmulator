@@ -54,7 +54,8 @@ module ibex_simple_system (
   parameter bit                 BranchPredictor          = 1'b0;
   parameter                     SRAMInitFile             = "";
 
-  logic clk_sys = 1'b0, rst_sys_n;
+  logic clk_sys /*verilator public*/ = 1'b0;
+  logic rst_sys_n /*verilator public*/; 
 
   typedef enum logic {
     CoreD
@@ -64,7 +65,7 @@ module ibex_simple_system (
     Ram,
     SimCtrl,
     Timer
-  } bus_device_e;
+  } bus_device_e /*verilator public*/;
 
   localparam int NrDevices = 3;
   localparam int NrHosts = 1;

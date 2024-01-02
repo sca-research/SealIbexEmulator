@@ -22,6 +22,8 @@ filesets:
       - ibex_simple_system.cc: { file_type: cppSource }
       - ibex_simple_system.h:  { file_type: cppSource, is_include_file: true}
       - lint/verilator_waiver.vlt: {file_type: vlt}
+      - sealibex.cc: { file_type: cppSource }
+      - sealibex.h:  { file_type: cppSource, is_include_file: true}
 
   files_lint_verible:
     files:

@@ -10,6 +10,8 @@
 #include <sys/stat.h>
 #include <verilated.h>
 
+#include "sealibex.h"
+
 // This is defined by Verilator and passed through the command line
 #ifndef VM_TRACE
 #define VM_TRACE 0
@@ -375,6 +377,8 @@ void VerilatorSimCtrl::Run() {
 
     top_->eval();
     time_++;
+
+    SealLibTest(top_);
 
     Trace();
 
