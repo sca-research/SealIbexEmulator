@@ -45,7 +45,7 @@ module ibex_simple_system (
   parameter bit                 RV32E                    = 1'b0;
   parameter ibex_pkg::rv32m_e   RV32M                    = `RV32M;
   parameter ibex_pkg::rv32b_e   RV32B                    = `RV32B;
-  parameter ibex_pkg::regfile_e RegFile                  = `RegFile;
+  parameter ibex_pkg::regfile_e RegFile /*verilator public*/ = `RegFile;
   parameter bit                 BranchTargetALU          = 1'b0;
   parameter bit                 WritebackStage           = 1'b0;
   parameter bit                 ICache                   = 1'b0;

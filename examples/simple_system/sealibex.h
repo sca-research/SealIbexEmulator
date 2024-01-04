@@ -11,6 +11,6 @@
 void SealInit();
 
 void SealLibTest();
-void SealLibTest(VerilatedToplevel* top);
+void SealLibTest(VerilatedToplevel* top, time_t time);
 
 #endif

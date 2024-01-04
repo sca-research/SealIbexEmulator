@@ -18,11 +18,16 @@ void SealLibTest()
 }
 
 
-void SealLibTest(VerilatedToplevel *vtop)
+void SealLibTest(VerilatedToplevel *vtop, time_t time)
 {
+    //Entrance to top level ibex_simple_system module.
     Vibex_simple_system *top = (Vibex_simple_system*) vtop;
-    cout<<(int)top->IO_CLK<<' '<<(int)top->IO_RST_N<<endl;
-    cout<<(int)top->ibex_simple_system->clk_sys<<endl;
+    Vibex_simple_system_ibex_simple_system const * ibextop = top->ibex_simple_system;
+
+    cout<<time<<" (IO_CLK, IO_RST_N): "<<"("<<ibextop->IO_CLK<<","<<ibextop->IO_RST_N<<")"<<endl;
+    cout<<time<<" clk_sys: "<<ibextop->clk_sys<<endl;
+    cout<<time<<" RegFile: "<<ibextop->RegFile<<endl;
+    cout<<Vibex_simple_system_ibex_simple_system::bus_device_e::Ram<<endl;
 
     return;
 }
