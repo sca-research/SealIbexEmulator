@@ -3,6 +3,7 @@
 #include "smurf/emulator.h"
 
 #include <iostream>
+#include <iomanip>
 
 #include "Vibex_simple_system.h"
 #include "Vibex_simple_system_ibex_simple_system.h"
@@ -12,6 +13,17 @@
 #include "Vibex_simple_system__Dpi.h"
 
 using namespace std;
+
+void SealInit()
+{
+    SmurfSetVerbose(true);
+
+    //Set scope to call DPI from ibex_simple_system module.
+    const svScope ibexscope = svGetScopeFromName("TOP.ibex_simple_system");
+    svSetScope(ibexscope);
+
+    return;
+}
 
 void SealLibTest()
 {
@@ -24,10 +36,9 @@ void SealLibTest()
 void SealLibTest(VerilatedToplevel *vtop, time_t time)
 {
     //Entrance to top level ibex_simple_system module.
-    Vibex_simple_system *top = (Vibex_simple_system *) vtop;
-    Vibex_simple_system_ibex_simple_system const *ibextop =
-        top->ibex_simple_system;
 
+    //Vibex_simple_system *top = (Vibex_simple_system *) vtop;
+    //Vibex_simple_system_ibex_simple_system const *ibextop = top->ibex_simple_system;
     //cout<<time<<" (IO_CLK, IO_RST_N): "<<"("<<ibextop->IO_CLK<<","<<ibextop->IO_RST_N<<")"<<endl;
     //cout<<time<<" clk_sys: "<<ibextop->clk_sys<<endl;
     //cout<<time<<" RegFile: "<<ibextop->RegFile<<endl;
@@ -36,17 +47,10 @@ void SealLibTest(VerilatedToplevel *vtop, time_t time)
     //cout<<time<<" timer_irq: " << ibextop->timer_irq << endl;
     //cout<<time<<" u_top.clk_i: " << ibextop->u_top->clk_i << endl;
 
-    const svScope ibexscope = svGetScopeFromName("TOP.ibex_simple_system");
-    svSetScope(ibexscope);
-
+    //Access with DPI.
     uint64_t cycle = seal_get_reg(1);
-    cout << time << " dpi::seal_get_reg: " << cycle << endl;
+    cout << oct << time << " dpi::seal_get_reg: " << hex << uppercase <<
+        setfill('0') << setw(8) << cycle << endl;
 
-    return;
-}
-
-void SealInit()
-{
-    SmurfSetVerbose(true);
     return;
 }
