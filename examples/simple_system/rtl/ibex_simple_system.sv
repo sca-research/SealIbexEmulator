@@ -331,13 +331,14 @@ module ibex_simple_system (
     return u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
   endfunction
 
-  //DPI for SEAL
+  //DPIs for SEAL
   export "DPI-C" function seal_get_reg;
-  function automatic longint unsigned seal_get_reg(int index);
+  function automatic int unsigned seal_get_reg(int index);
     //(ibex_top_tracing)u_top.
     //  |-(ibex_top)u_ibex_top.
     //     |- (ibex_core)u_ibex_core.
-    return longint'(u_top.u_ibex_top.register_file_i.rf_reg[index]);
+    //     |- (ibex_register_file_ff) register_file_i
+    return (u_top.u_ibex_top.gen_regfile_ff.register_file_i.rf_reg[index]);
   endfunction
 
 
