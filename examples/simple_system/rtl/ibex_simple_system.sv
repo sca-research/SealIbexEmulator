@@ -45,7 +45,7 @@ module ibex_simple_system (
   parameter bit                 RV32E                    = 1'b0;
   parameter ibex_pkg::rv32m_e   RV32M                    = `RV32M;
   parameter ibex_pkg::rv32b_e   RV32B                    = `RV32B;
-  parameter ibex_pkg::regfile_e RegFile /*verilator public*/ = `RegFile;
+  parameter ibex_pkg::regfile_e RegFile                  = `RegFile;
   parameter bit                 BranchTargetALU          = 1'b0;
   parameter bit                 WritebackStage           = 1'b0;
   parameter bit                 ICache                   = 1'b0;
@@ -54,8 +54,8 @@ module ibex_simple_system (
   parameter bit                 BranchPredictor          = 1'b0;
   parameter                     SRAMInitFile             = "";
 
-  logic clk_sys /*verilator public*/ = 1'b0;
-  logic rst_sys_n /*verilator public*/; 
+  logic clk_sys = 1'b0;
+  logic rst_sys_n;
 
   typedef enum logic {
     CoreD
@@ -65,7 +65,7 @@ module ibex_simple_system (
     Ram,
     SimCtrl,
     Timer
-  } bus_device_e /*verilator public*/;
+  } bus_device_e;
 
   localparam int NrDevices = 3;
   localparam int NrHosts = 1;
@@ -330,5 +330,15 @@ module ibex_simple_system (
   function automatic longint unsigned mhpmcounter_get(int index);
     return u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
   endfunction
+
+  //DPI for SEAL
+  export "DPI-C" function seal_get_reg;
+  function automatic longint unsigned seal_get_reg(int index);
+    //(ibex_top_tracing)u_top.
+    //  |-(ibex_top)u_ibex_top.
+    //     |- (ibex_core)u_ibex_core.
+    return longint'(u_top.u_ibex_top.register_file_i.rf_reg[index]);
+  endfunction
+
 
 endmodule
