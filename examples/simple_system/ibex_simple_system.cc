@@ -31,6 +31,8 @@ int SimpleSystem::Main(int argc, char **argv) {
 
   Run();
 
+  SealClean();
+
   if (!Finish()) {
     return 1;
   }
