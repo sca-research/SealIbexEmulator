@@ -1,6 +1,10 @@
 {
     "version": "2",
     "components": {
+        "SimTime": {
+            "type": "UINT32",
+            "len": 1
+        },
         "Reg": {
             "type": "UINT32",
             "len": 32

@@ -6,6 +6,9 @@ import smurf
 
 ibex_core = smurf.Core(ver=2)
 
+# Simulation time.
+ibex_core.NewComponent("SimTime", "UINT32")
+
 # 32 general register files.
 ibex_core.NewComponent("Reg", "UINT32", 32)
 
