@@ -1,0 +1,9 @@
+{
+    "version": "2",
+    "components": {
+        "Reg": {
+            "type": "UINT32",
+            "len": 32
+        }
+    }
+}
