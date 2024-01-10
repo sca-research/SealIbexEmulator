@@ -28,6 +28,7 @@ Smurf *seal = NULL;             //Seal kernel.
 
 //Exported core status from verilated code.
 struct {
+    uint32_t SimTime;           //Simulation Time.
     uint32_t reg[NUM_REG];      //General registers.
 } rv_core = { 0 };
 
@@ -43,6 +44,7 @@ void SealInit()
 #endif
 
     //Bind Seal components to exported rv_core.
+    SmurfBind(seal, "SimTime", &rv_core.SimTime);
     SmurfBind(seal, "Reg", rv_core.reg);
 
     //Set scope to call DPI from ibex_simple_system module.
@@ -67,9 +69,11 @@ uint32_t GetReg(int regindex)
 }
 
 //Synchronise rv_core from verilated Vibex top, then to Seal kernel.
-void SyncRvCore()
+void SyncRvCore(time_t time)
 {
     //Sync from Vibex top to rv_core.
+    //Simulation Time.
+    rv_core.SimTime = time;
     //General registers.
     for (int i = 0; i < NUM_REG; i++)
     {
@@ -115,7 +119,7 @@ void SealLibTest()
 
 void SealLibTest(VerilatedToplevel *vtop, time_t time)
 {
-    SyncRvCore();
+    SyncRvCore(time);
     DisplayRvCore(time);
     WriteFrame();
     return;
