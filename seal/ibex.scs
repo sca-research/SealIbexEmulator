@@ -8,6 +8,34 @@
         "Reg": {
             "type": "UINT32",
             "len": 32
+        },
+        "ExeInst": {
+            "type": "OCTET",
+            "len": 1
+        },
+        "ExeOpA": {
+            "type": "UINT32",
+            "len": 1
+        },
+        "ExeOpB": {
+            "type": "UINT32",
+            "len": 1
+        },
+        "ExeResult": {
+            "type": "UINT32",
+            "len": 1
+        },
+        "MemInstRdBus": {
+            "type": "UINT32",
+            "len": 1
+        },
+        "MemDataRdBus": {
+            "type": "UINT32",
+            "len": 1
+        },
+        "MemDataWrBus": {
+            "type": "UINT32",
+            "len": 1
         }
     }
 }
