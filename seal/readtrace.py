@@ -19,29 +19,28 @@ def PrintComponent(comp):
             print(" {:02X}".format(comp.raw[i]), end='')
         pass
 
-    if comp.type != 'OCTET':
-        print(' (', end='')
-        if comp.type == 'BOOL':
-            for i in range(comp.len):
-                if comp.val[i]:
-                    print('T ', end='')
-                    pass
-                else:
-                    print('F ', end='')
-                    pass
+    print(' (', end='')
+    if comp.type == 'BOOL':
+        for i in range(comp.len):
+            if comp.val[i]:
+                print('T ', end='')
+                pass
+            else:
+                print('F ', end='')
                 pass
             pass
-        elif comp.type == 'STRING':
-            print("{:s}".format(comp.val), end='')
-            pass
-        elif comp.type in {'INT16', 'UINT16', 'INT32', 'UINT32'}:
-            for i in range(comp.len):
-                print("{:02X} ".format(comp.val[i]), end='')
-                if i != len(comp.val) - 1:
-                    print(',', end='')
-        else:
-            raise ("Unknown Component type")
-        print(')', end='')
+        pass
+    elif comp.type == 'STRING':
+        print("{:s}".format(comp.val), end='')
+        pass
+    elif comp.type in {'OCTET', 'INT16', 'UINT16', 'INT32', 'UINT32'}:
+        for i in range(comp.len):
+            print("{:02X} ".format(comp.val[i]), end='')
+            if i != len(comp.val) - 1:
+                print(',', end='')
+    else:
+        raise ("Unknown Component type")
+    print(')', end='')
 
     print('')
     return
