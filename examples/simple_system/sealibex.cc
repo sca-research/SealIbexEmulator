@@ -30,6 +30,17 @@ Smurf *seal = NULL;             //Seal kernel.
 struct {
     uint32_t SimTime;           //Simulation Time.
     uint32_t reg[NUM_REG];      //General registers.
+
+    //Execution ALU
+    uint8_t ExeInst;
+    uint32_t ExeOpA;
+    uint32_t ExeOpB;
+    uint32_t ExeResult;
+
+    //Memory
+    uint32_t MemInstRdBus;
+    uint32_t MemDataRdBus;
+    uint32_t MemDataWrBus;
 } rv_core = { 0 };
 
 //Initialise Seal kernel.
@@ -46,6 +57,13 @@ void SealInit()
     //Bind Seal components to exported rv_core.
     SmurfBind(seal, "SimTime", &rv_core.SimTime);
     SmurfBind(seal, "Reg", rv_core.reg);
+    SmurfBind(seal, "ExeInst", &rv_core.ExeInst);
+    SmurfBind(seal, "ExeOpA", &rv_core.ExeOpA);
+    SmurfBind(seal, "ExeOpB", &rv_core.ExeOpB);
+    SmurfBind(seal, "ExeResult", &rv_core.ExeResult);
+    SmurfBind(seal, "MemInstRdBus", &rv_core.MemInstRdBus);
+    SmurfBind(seal, "MemDataRdBus", &rv_core.MemDataRdBus);
+    SmurfBind(seal, "MemDataWrBus", &rv_core.MemDataWrBus);
 
     //Set scope to call DPI from ibex_simple_system module.
     const svScope ibexscope = svGetScopeFromName("TOP.ibex_simple_system");
@@ -72,13 +90,40 @@ uint32_t GetReg(int regindex)
 void SyncRvCore(time_t time)
 {
     //Sync from Vibex top to rv_core.
+
     //Simulation Time.
     rv_core.SimTime = time;
+
     //General registers.
     for (int i = 0; i < NUM_REG; i++)
     {
         rv_core.reg[i] = GetReg(i);
     }
+
+    //**********************
+    //Execution ALU
+    //**********************
+
+    //Execution instruction.
+    rv_core.ExeInst = seal_get_exe_inst();
+
+    //Execution operands.
+    rv_core.ExeOpA = seal_get_exe_op_a();
+    rv_core.ExeOpB = seal_get_exe_op_b();
+
+    //Execution result.
+    rv_core.ExeResult = seal_get_exe_result();
+
+    //**********************
+    //Memory
+    //**********************
+
+    //Instruction memory read.
+    rv_core.MemInstRdBus = seal_get_mem_inst_rd();
+    //Instruction memory read.
+    rv_core.MemDataRdBus = seal_get_mem_data_rd();
+    //Instruction memory read.
+    rv_core.MemDataWrBus = seal_get_mem_data_wr();
 
     //Sync from rv_core to Seal kernel.
     SmurfSync(seal);
@@ -90,14 +135,16 @@ void SyncRvCore(time_t time)
 void DisplayRvCore(time_t time)
 {
 #ifdef DBG
-    //Print regs.
+    //General regs.
     cout << oct << time << " Regs: [";
     for (int i = 0; i < NUM_REG; i++)
     {
         printf("0x%08X,", rv_core.reg[i]);
     }
-
     cout << "]" << endl;
+
+    //Execution operands.
+    printf("ExeOp: [0x%08X, 0x%08X]\n", rv_core.ExeOpA, rv_core.ExeOpB);
 #endif
     return;
 }
@@ -120,7 +167,7 @@ void SealLibTest()
 void SealLibTest(VerilatedToplevel *vtop, time_t time)
 {
     SyncRvCore(time);
-    DisplayRvCore(time);
+    //DisplayRvCore(time);
     WriteFrame();
     return;
 }
