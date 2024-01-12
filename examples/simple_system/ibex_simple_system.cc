@@ -13,6 +13,8 @@
 #include "verilator_memutil.h"
 #include "verilator_sim_ctrl.h"
 
+#include "sealibex.h"
+
 SimpleSystem::SimpleSystem(const char *ram_hier_path, int ram_size_words)
     : _ram(ram_hier_path, ram_size_words, 4) {}
 
@@ -23,8 +25,13 @@ int SimpleSystem::Main(int argc, char **argv) {
   if (exit_app) {
     return ret_code;
   }
+  
+  SealInit();
+  SealLibTest();
 
   Run();
+
+  SealClean();
 
   if (!Finish()) {
     return 1;

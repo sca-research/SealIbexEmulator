@@ -54,7 +54,8 @@ module ibex_simple_system (
   parameter bit                 BranchPredictor          = 1'b0;
   parameter                     SRAMInitFile             = "";
 
-  logic clk_sys = 1'b0, rst_sys_n;
+  logic clk_sys = 1'b0;
+  logic rst_sys_n;
 
   typedef enum logic {
     CoreD
@@ -328,6 +329,63 @@ module ibex_simple_system (
 
   function automatic longint unsigned mhpmcounter_get(int index);
     return u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
+  endfunction
+
+  //DPIs for SEAL
+  //(ibex_top_tracing)u_top.
+  //  |-(ibex_top)u_ibex_top.
+  //     |- (ibex_core)u_ibex_core.
+  //     |    |- (ibex_id_stage) id_stage_i #Decode block
+  //     |    |- (ibex_ex_block) ex_block_i #Execution block
+  //     |- (ibex_register_file_ff) register_file_i
+
+  //General registers.
+  export "DPI-C" function seal_get_reg;
+  function automatic int unsigned seal_get_reg(int index);
+    return (u_top.u_ibex_top.gen_regfile_ff.register_file_i.rf_reg[index]);
+  endfunction
+
+  //Execution instruction.
+  export "DPI-C" function seal_get_exe_inst;
+  function automatic byte unsigned seal_get_exe_inst();
+      bit msb = 1'b0;
+      seal_get_exe_inst = {msb, u_top.u_ibex_top.u_ibex_core.alu_operator_ex};
+  endfunction
+
+  //Execution op-a.
+  export "DPI-C" function seal_get_exe_op_a;
+  function automatic int unsigned seal_get_exe_op_a();
+    return (u_top.u_ibex_top.u_ibex_core.alu_operand_a_ex);
+  endfunction
+
+  //Execution op-b.
+  export "DPI-C" function seal_get_exe_op_b;
+  function automatic int unsigned seal_get_exe_op_b();
+    return (u_top.u_ibex_top.u_ibex_core.alu_operand_b_ex);
+  endfunction
+
+  //Execution result.
+  export "DPI-C" function seal_get_exe_result;
+  function automatic int unsigned seal_get_exe_result();
+    return (u_top.u_ibex_top.u_ibex_core.result_ex);
+  endfunction
+
+  //Instruction read memory.
+  export "DPI-C" function seal_get_mem_inst_rd;
+  function automatic int unsigned seal_get_mem_inst_rd();
+    return (u_top.u_ibex_top.u_ibex_core.instr_rdata_i);
+  endfunction
+
+  //Data read memory.
+  export "DPI-C" function seal_get_mem_data_rd;
+  function automatic int unsigned seal_get_mem_data_rd();
+    return (u_top.u_ibex_top.u_ibex_core.data_rdata_i);
+  endfunction
+
+  //Data write memory.
+  export "DPI-C" function seal_get_mem_data_wr;
+  function automatic int unsigned seal_get_mem_data_wr();
+    return (u_top.u_ibex_top.u_ibex_core.data_wdata_o);
   endfunction
 
 endmodule
