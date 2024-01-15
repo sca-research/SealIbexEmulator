@@ -12,6 +12,9 @@ ibex_core.NewComponent("SimTime", "UINT32")
 # 32 general register files.
 ibex_core.NewComponent("Reg", "UINT32", 32)
 
+# Writeback register.
+ibex_core.NewComponent("WbReg", "UINT32")
+
 # Execution instruction.
 ibex_core.NewComponent("ExeInst", "OCTET")
 

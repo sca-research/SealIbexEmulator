@@ -29,7 +29,8 @@ Smurf *seal = NULL;             //Seal kernel.
 //Exported core status from verilated code.
 struct {
     uint32_t SimTime;           //Simulation Time.
-    uint32_t reg[NUM_REG];      //General registers.
+    uint32_t Reg[NUM_REG];      //General registers.
+    uint32_t WbReg;             //Writeback register.
 
     //Execution ALU
     uint8_t ExeInst;
@@ -56,7 +57,8 @@ void SealInit()
 
     //Bind Seal components to exported rv_core.
     SmurfBind(seal, "SimTime", &rv_core.SimTime);
-    SmurfBind(seal, "Reg", rv_core.reg);
+    SmurfBind(seal, "Reg", rv_core.Reg);
+    SmurfBind(seal, "WbReg", &rv_core.WbReg);
     SmurfBind(seal, "ExeInst", &rv_core.ExeInst);
     SmurfBind(seal, "ExeOpA", &rv_core.ExeOpA);
     SmurfBind(seal, "ExeOpB", &rv_core.ExeOpB);
@@ -97,13 +99,15 @@ void SyncRvCore(time_t time)
     //General registers.
     for (int i = 0; i < NUM_REG; i++)
     {
-        rv_core.reg[i] = GetReg(i);
+        rv_core.Reg[i] = GetReg(i);
     }
+
+    //Writeback register.
+    rv_core.WbReg = seal_get_wb_reg();
 
     //**********************
     //Execution ALU
     //**********************
-
     //Execution instruction.
     rv_core.ExeInst = seal_get_exe_inst();
 
@@ -117,7 +121,6 @@ void SyncRvCore(time_t time)
     //**********************
     //Memory
     //**********************
-
     //Instruction memory read.
     rv_core.MemInstRdBus = seal_get_mem_inst_rd();
     //Instruction memory read.
@@ -139,7 +142,7 @@ void DisplayRvCore(time_t time)
     cout << oct << time << " Regs: [";
     for (int i = 0; i < NUM_REG; i++)
     {
-        printf("0x%08X,", rv_core.reg[i]);
+        printf("0x%08X,", rv_core.Reg[i]);
     }
     cout << "]" << endl;
 

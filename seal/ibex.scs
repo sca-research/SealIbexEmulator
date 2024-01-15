@@ -9,6 +9,10 @@
             "type": "UINT32",
             "len": 32
         },
+        "WbReg": {
+            "type": "UINT32",
+            "len": 1
+        },
         "ExeInst": {
             "type": "OCTET",
             "len": 1
