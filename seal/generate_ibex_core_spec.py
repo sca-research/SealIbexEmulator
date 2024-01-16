@@ -15,6 +15,9 @@ ibex_core.NewComponent("Reg", "UINT32", 32)
 # Writeback register.
 ibex_core.NewComponent("WbReg", "UINT32")
 
+# Fetch-Decode register.
+ibex_core.NewComponent("F2DReg", "UINT32")
+
 # Execution instruction.
 ibex_core.NewComponent("ExeInst", "OCTET")
 
