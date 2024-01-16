@@ -378,7 +378,7 @@ void VerilatorSimCtrl::Run() {
     top_->eval();
     time_++;
 
-    SealLibTest(top_, time_);
+    SealSync(top_, time_);
 
     Trace();
 

@@ -13,7 +13,7 @@ void SealInit();
 //Clean Seal kernel.
 void SealClean();
 
-void SealLibTest();
-void SealLibTest(VerilatedToplevel * top, time_t time);
+//Synchronise signals to Seal kernel.
+void SealSync(VerilatedToplevel * top, time_t time);
 
 #endif

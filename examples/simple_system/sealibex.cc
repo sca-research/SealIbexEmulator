@@ -20,7 +20,7 @@
 #define NUM_REG (32)            //Number of registers.
 
 #define IBEX_CORE_SPEC "seal/ibex.scs"  //Path to Ibex Seal Core Specification.
-#define SEAL_TRACE "/tmp/ibex_seal.trace"       //Output Seal trace path.
+#define SEAL_TRACE "./ibex_seal.trace"  //Output Seal trace path.
 
 using namespace std;
 
@@ -159,18 +159,13 @@ void WriteFrame()
     return;
 }
 
-void SealLibTest()
+//Synchronise signals to Seal kernel.
+void SealSync(VerilatedToplevel *vtop, time_t time)
 {
-    cout << "#####################" << endl;
-    INFO("SealTest() invoked.\n");
-    cout << "#####################" << endl;
-    return;
-}
-
-void SealLibTest(VerilatedToplevel *vtop, time_t time)
-{
+    //Sync signals to Seal kernel Frame.
     SyncRvCore(time);
-    //DisplayRvCore(time);
+
+    //Write a Frame.
     WriteFrame();
     return;
 }

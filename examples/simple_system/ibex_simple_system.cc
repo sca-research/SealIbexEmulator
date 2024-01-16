@@ -27,7 +27,6 @@ int SimpleSystem::Main(int argc, char **argv) {
   }
   
   SealInit();
-  SealLibTest();
 
   Run();
 
