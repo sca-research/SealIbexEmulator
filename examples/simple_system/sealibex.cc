@@ -42,7 +42,7 @@ struct {
     uint32_t F2DReg; //Fetch-Decode register.
 
     //Execution ALU
-    uint8_t ExeInst;
+    //uint8_t ExeInst;
     uint32_t ExeOpA;
     uint32_t ExeOpB;
     uint32_t ExeResult;
@@ -70,7 +70,7 @@ void SealInit()
     SmurfBind(seal, "Reg", rv_core.Reg);
     SmurfBind(seal, "WbReg", &rv_core.WbReg);
     SmurfBind(seal, "F2DReg", &rv_core.F2DReg);
-    SmurfBind(seal, "ExeInst", &rv_core.ExeInst);
+    //SmurfBind(seal, "ExeInst", &rv_core.ExeInst);
     SmurfBind(seal, "ExeOpA", &rv_core.ExeOpA);
     SmurfBind(seal, "ExeOpB", &rv_core.ExeOpB);
     SmurfBind(seal, "ExeResult", &rv_core.ExeResult);
@@ -126,7 +126,7 @@ void SyncRvCore(time_t time)
     //Execution ALU
     //**********************
     //Execution instruction.
-    rv_core.ExeInst = seal_get_exe_inst();
+    //rv_core.ExeInst = seal_get_exe_inst();
 
     //Execution operands.
     rv_core.ExeOpA = seal_get_exe_op_a();

@@ -17,10 +17,6 @@
             "type": "UINT32",
             "len": 1
         },
-        "ExeInst": {
-            "type": "OCTET",
-            "len": 1
-        },
         "ExeOpA": {
             "type": "UINT32",
             "len": 1

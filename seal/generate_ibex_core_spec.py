@@ -19,7 +19,7 @@ ibex_core.NewComponent("WbReg", "UINT32")
 ibex_core.NewComponent("F2DReg", "UINT32")
 
 # Execution instruction.
-ibex_core.NewComponent("ExeInst", "OCTET")
+# ibex_core.NewComponent("ExeInst", "OCTET")
 
 # Execution operands.
 ibex_core.NewComponent("ExeOpA", "UINT32")
