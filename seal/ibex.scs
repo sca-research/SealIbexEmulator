@@ -13,8 +13,8 @@
             "type": "UINT32",
             "len": 1
         },
-        "ExeInst": {
-            "type": "OCTET",
+        "F2DReg": {
+            "type": "UINT32",
             "len": 1
         },
         "ExeOpA": {

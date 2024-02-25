@@ -22,18 +22,27 @@
 #define IBEX_CORE_SPEC "seal/ibex.scs"  //Path to Ibex Seal Core Specification.
 #define SEAL_TRACE "./ibex_seal.trace"  //Output Seal trace path.
 
+
 using namespace std;
+
 
 Smurf *seal = NULL;             //Seal kernel.
 
+
 //Exported core status from verilated code.
 struct {
-    uint32_t SimTime;           //Simulation Time.
+    //Simulation Time.
+    uint32_t SimTime;
+
+    //Register files.
     uint32_t Reg[NUM_REG];      //General registers.
     uint32_t WbReg;             //Writeback register.
 
+    //Pipeline registers.
+    uint32_t F2DReg; //Fetch-Decode register.
+
     //Execution ALU
-    uint8_t ExeInst;
+    //uint8_t ExeInst;
     uint32_t ExeOpA;
     uint32_t ExeOpB;
     uint32_t ExeResult;
@@ -43,6 +52,7 @@ struct {
     uint32_t MemDataRdBus;
     uint32_t MemDataWrBus;
 } rv_core = { 0 };
+
 
 //Initialise Seal kernel.
 void SealInit()
@@ -59,7 +69,8 @@ void SealInit()
     SmurfBind(seal, "SimTime", &rv_core.SimTime);
     SmurfBind(seal, "Reg", rv_core.Reg);
     SmurfBind(seal, "WbReg", &rv_core.WbReg);
-    SmurfBind(seal, "ExeInst", &rv_core.ExeInst);
+    SmurfBind(seal, "F2DReg", &rv_core.F2DReg);
+    //SmurfBind(seal, "ExeInst", &rv_core.ExeInst);
     SmurfBind(seal, "ExeOpA", &rv_core.ExeOpA);
     SmurfBind(seal, "ExeOpB", &rv_core.ExeOpB);
     SmurfBind(seal, "ExeResult", &rv_core.ExeResult);
@@ -106,10 +117,16 @@ void SyncRvCore(time_t time)
     rv_core.WbReg = seal_get_wb_reg();
 
     //**********************
+    //Pipeline registers
+    //**********************
+    rv_core.F2DReg = seal_get_f2d_reg();
+
+
+    //**********************
     //Execution ALU
     //**********************
     //Execution instruction.
-    rv_core.ExeInst = seal_get_exe_inst();
+    //rv_core.ExeInst = seal_get_exe_inst();
 
     //Execution operands.
     rv_core.ExeOpA = seal_get_exe_op_a();

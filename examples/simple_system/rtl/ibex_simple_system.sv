@@ -351,6 +351,13 @@ module ibex_simple_system (
     return (u_top.u_ibex_top.u_ibex_core.rf_wdata_wb_ecc_o);
   endfunction
 
+  //Fetch-Decode register.
+   export "DPI-C" function seal_get_f2d_reg;
+  function automatic int unsigned seal_get_f2d_reg();
+    return (u_top.u_ibex_top.u_ibex_core.instr_rdata_id);
+  endfunction
+
+
   //Execution instruction.
   export "DPI-C" function seal_get_exe_inst;
   function automatic byte unsigned seal_get_exe_inst();
