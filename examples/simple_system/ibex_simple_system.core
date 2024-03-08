@@ -178,7 +178,7 @@ targets:
           - '-CFLAGS "-std=c++11 -Wall -DVM_TRACE_FMT_FST -DTOPLEVEL_NAME=ibex_simple_system -g"'
           #- '-LDFLAGS "-pthread -lutil -lelf"'
           # Also link SEAL lib in verilator.
-          - '-LDFLAGS "-pthread -lutil -lelf -lsmurf -lsmurfemulator"'
+          - '-LDFLAGS "-pthread -lutil -lelf -lseal -lsealemulator"'
           - "-Wall"
           - "-Wwarn-IMPERFECTSCH"
           # RAM primitives wider than 64bit (required for ECC) fail to build in

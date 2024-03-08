@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # A script to generate an Ibex core specification.
 
-import smurf
+import seal
 
 
-ibex_core = smurf.Core(ver=2)
+ibex_core = seal.Core(ver=2)
 
 # Simulation time.
 ibex_core.NewComponent("SimTime", "UINT32")

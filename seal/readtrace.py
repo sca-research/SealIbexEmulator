@@ -2,7 +2,7 @@
 # Example for reading a Trace file.
 
 import sys
-import smurf
+import seal
 
 # Verbose flag.
 verbose = False
@@ -61,8 +61,8 @@ def main(argc, argv):
         pass
 
     # Read Core specification.
-    core = smurf.Core.Load(argv[1])
-    st = smurf.Trace(core)
+    core = seal.Core.Load(argv[1])
+    st = seal.Trace(core)
 
     # Open Trace file.
     st.Open(argv[2])
