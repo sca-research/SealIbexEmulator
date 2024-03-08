@@ -1,6 +1,6 @@
 #include "sealibex.h"
-#include "smurf/smurf.h"
-#include "smurf/emulator.h"
+#include "seal/seal.h"
+#include "seal/emulator.h"
 
 #include <iostream>
 #include <iomanip>
@@ -26,7 +26,7 @@
 using namespace std;
 
 
-Smurf *seal = NULL;             //Seal kernel.
+Seal *seal = NULL;             //Seal kernel.
 
 
 //Exported core status from verilated code.
@@ -58,25 +58,25 @@ struct {
 void SealInit()
 {
     //Initialise Seal session.
-    seal = InitSmurf(IBEX_CORE_SPEC, SEAL_TRACE, SMURF_TRACE_MODE_CREATE);
+    seal = InitSeal(IBEX_CORE_SPEC, SEAL_TRACE, SEAL_TRACE_MODE_CREATE);
 
 #ifdef DBG
     //DBG
-    SmurfSetVerbose(true);
+    SealSetVerbose(true);
 #endif
 
     //Bind Seal components to exported rv_core.
-    SmurfBind(seal, "SimTime", &rv_core.SimTime);
-    SmurfBind(seal, "Reg", rv_core.Reg);
-    SmurfBind(seal, "WbReg", &rv_core.WbReg);
-    SmurfBind(seal, "F2DReg", &rv_core.F2DReg);
-    //SmurfBind(seal, "ExeInst", &rv_core.ExeInst);
-    SmurfBind(seal, "ExeOpA", &rv_core.ExeOpA);
-    SmurfBind(seal, "ExeOpB", &rv_core.ExeOpB);
-    SmurfBind(seal, "ExeResult", &rv_core.ExeResult);
-    SmurfBind(seal, "MemInstRdBus", &rv_core.MemInstRdBus);
-    SmurfBind(seal, "MemDataRdBus", &rv_core.MemDataRdBus);
-    SmurfBind(seal, "MemDataWrBus", &rv_core.MemDataWrBus);
+    SealBind(seal, "SimTime", &rv_core.SimTime);
+    SealBind(seal, "Reg", rv_core.Reg);
+    SealBind(seal, "WbReg", &rv_core.WbReg);
+    SealBind(seal, "F2DReg", &rv_core.F2DReg);
+    //SealBind(seal, "ExeInst", &rv_core.ExeInst);
+    SealBind(seal, "ExeOpA", &rv_core.ExeOpA);
+    SealBind(seal, "ExeOpB", &rv_core.ExeOpB);
+    SealBind(seal, "ExeResult", &rv_core.ExeResult);
+    SealBind(seal, "MemInstRdBus", &rv_core.MemInstRdBus);
+    SealBind(seal, "MemDataRdBus", &rv_core.MemDataRdBus);
+    SealBind(seal, "MemDataWrBus", &rv_core.MemDataWrBus);
 
     //Set scope to call DPI from ibex_simple_system module.
     const svScope ibexscope = svGetScopeFromName("TOP.ibex_simple_system");
@@ -88,7 +88,7 @@ void SealInit()
 //Clean Seal kernel.
 void SealClean()
 {
-    FreeSmurf(seal);
+    FreeSeal(seal);
     return;
 }
 
@@ -146,7 +146,7 @@ void SyncRvCore(time_t time)
     rv_core.MemDataWrBus = seal_get_mem_data_wr();
 
     //Sync from rv_core to Seal kernel.
-    SmurfSync(seal);
+    SealSync(seal);
 
     return;
 }
@@ -172,7 +172,7 @@ void DisplayRvCore(time_t time)
 //Write a Frame into Trace.
 void WriteFrame()
 {
-    SmurfWrite(seal);
+    SealWrite(seal);
     return;
 }
 
