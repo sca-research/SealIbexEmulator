@@ -1,3 +1,9 @@
+// Copyright lowRISC contributors.
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
+// Authors of SEAL related source code: 
+// Elibsaeth Oswald (Elisabeth.Oswald@protonmail.com) and Yan Yan (yanyansmajesty@outlook.com)
+
 #ifndef _SEALIBEX_H
 #define _SEALIBEX_H
 
