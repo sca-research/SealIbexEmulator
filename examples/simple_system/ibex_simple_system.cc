@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
+// Authors of SEAL related source code: 
+// Elibsaeth Oswald (Elisabeth.Oswald@protonmail.com) and Yan Yan (yanyansmajesty@outlook.com)
+
 #include <cassert>
 #include <fstream>
 #include <iostream>
