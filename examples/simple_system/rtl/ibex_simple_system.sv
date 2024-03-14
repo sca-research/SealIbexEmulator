@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
+// Authors of SEAL related source code: 
+// Elibsaeth Oswald (Elisabeth.Oswald@protonmail.com) and Yan Yan (yanyansmajesty@outlook.com)
+
 // VCS does not support overriding enum and string parameters via command line. Instead, a `define
 // is used that can be set from the command line. If no value has been specified, this gives a
 // default. Other simulators don't take the detour via `define and can override the corresponding
