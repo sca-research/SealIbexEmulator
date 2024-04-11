@@ -112,3 +112,9 @@ License, Version 2.0 (see LICENSE for full text).
 
 Many people have contributed to Ibex through the years. Please have a look at
 the [credits file](CREDITS.md) and the commit history for more information.
+
+## Acknowledgement
+The SEAL adaption has received funding from the European Research Council (ERC) under the European Union’s
+Horizon 2020 research and innovation programme (grant agreement No 725042).
+
+![EU Logo](https://github.com/bristol-sca/GILES/blob/master/LOGO_ERC-FLAG_EU.jpg "ERC")
