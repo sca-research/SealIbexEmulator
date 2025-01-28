@@ -352,7 +352,7 @@ module ibex_controller #(
 
     // As integrity error is the only internal interrupt implement, set irq_nm_* signals directly
     // within this generate block.
-    assign irq_nm_int       = mem_resp_intg_err_irq_set | mem_resp_intg_err_irq_pending_q;
+    assign irq_nm_int       = mem_resp_intg_err_irq_pending_q;
     assign irq_nm_int_cause = NMI_INT_CAUSE_ECC;
     assign irq_nm_int_mtval = mem_resp_intg_err_addr_q;
   end else begin : g_no_intg_irq_int
@@ -997,6 +997,15 @@ module ibex_controller #(
     // If there's a pending exception req that doesn't need a PC set we must not see one
     `ASSERT(IbexNoPCSetOnSpecialReqIfNotExpected,
       exception_req_pending && !expect_exception_pc_set |-> ~pc_set_o)
+
+    // If entering or exiting debug mode, the pipeline must be flushed. This is because Ibex
+    // currently does not support some of the pipeline stages being in debug mode; either all or
+    // none of the pipeline stages must be in debug mode. As `flush_id_o` only affects the ID/EX
+    // stage but does not prevent a fetched instruction from proceeding to ID/EX the next cycle, the
+    // assertion additionally requires `pc_set_o`, which sets the PC in the IF stage to a new value,
+    // hence preventing a fetched instruction from proceeding to the ID/EX stage in the next cycle.
+    `ASSERT(IbexPipelineFlushOnChangingDebugMode,
+      debug_mode_d != debug_mode_q |-> flush_id_o & pc_set_o)
   `endif
 
   `ifdef RVFI
