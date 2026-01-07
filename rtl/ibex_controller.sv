@@ -47,7 +47,7 @@ module ibex_controller #(
   input  logic                  instr_exec_i,            // Execution control, when clear ID/EX
                                                          // stage stops accepting instructions from
                                                          // IF
-  // to prefetcher
+  // to prefetch
   output logic                  instr_req_o,             // start fetching instructions
   output logic                  pc_set_o,                // jump to address set by pc_mux
   output ibex_pkg::pc_sel_e     pc_mux_o,                // IF stage fetch address selector
@@ -76,7 +76,7 @@ module ibex_controller #(
   input  logic                  irq_pending_i,           // interrupt request pending
   input  ibex_pkg::irqs_t       irqs_i,                  // interrupt requests qualified with
                                                          // mie CSR
-  input  logic                  irq_nm_ext_i,            // non-maskeable interrupt
+  input  logic                  irq_nm_ext_i,            // non-maskable interrupt
   output logic                  nmi_mode_o,              // core executing NMI handler
 
   // debug signals
@@ -175,7 +175,7 @@ module ibex_controller #(
     // print warning in case of decoding errors
     if ((ctrl_fsm_cs == DECODE) && instr_valid_i && !instr_fetch_err_i && illegal_insn_d) begin
       $display("%t: Illegal instruction (hart %0x) at PC 0x%h: 0x%h", $time, u_ibex_core.hart_id_i,
-               pc_id_i, id_stage_i.instr_rdata_i);
+               pc_id_i, instr_is_compressed_i ? {16'b0, instr_compressed_i} : instr_i );
     end
   end
   // synopsys translate_on
@@ -248,7 +248,7 @@ module ibex_controller #(
 
       // Note that with the writeback stage store/load errors occur on the instruction in writeback,
       // all other exception/faults occur on the instruction in ID/EX. The faults from writeback
-      // must take priority as that instruction is architecurally ordered before the one in ID/EX.
+      // must take priority as that instruction is architecturally ordered before the one in ID/EX.
       if (store_err_q) begin
         store_err_prio = 1'b1;
       end else if (load_err_q) begin
@@ -317,7 +317,7 @@ module ibex_controller #(
 
     assign entering_nmi = nmi_mode_d & ~nmi_mode_q;
 
-    // Load integerity error internal interrupt
+    // Load integrity error internal interrupt
     always_comb begin
       mem_resp_intg_err_addr_d        = mem_resp_intg_err_addr_q;
       mem_resp_intg_err_irq_set       = 1'b0;
@@ -428,7 +428,7 @@ module ibex_controller #(
 
   // Record the debug cause outside of the FSM
   // The decision to enter debug_mode and the write of the cause to DCSR happen
-  // in seperate steps within the FSM. Hence, there are a small number of cycles
+  // in separate steps within the FSM. Hence, there are a small number of cycles
   // where a change in external stimulus can cause the cause to be recorded incorrectly.
   assign debug_cause_d = trigger_match_i                    ? DBG_CAUSE_TRIGGER :
                          ebrk_insn_prio & ebreak_into_debug ? DBG_CAUSE_EBREAK  :
@@ -925,91 +925,17 @@ module ibex_controller #(
       RESET, BOOT_SET, WAIT_SLEEP, SLEEP, FIRST_FETCH, DECODE, FLUSH,
       IRQ_TAKEN, DBG_TAKEN_IF, DBG_TAKEN_ID})
 
-  `ifdef INC_ASSERT
-    // If something that causes a jump into an exception handler is seen that jump must occur before
-    // the next instruction executes. The logic tracks whether a jump into an exception handler is
-    // expected. Assertions check the jump occurs.
-
-    logic exception_req, exception_req_pending, exception_req_accepted, exception_req_done;
-    logic exception_pc_set, seen_exception_pc_set, expect_exception_pc_set;
-    logic exception_req_needs_pc_set;
-
-    assign exception_req = (special_req | enter_debug_mode | handle_irq);
-    // Any exception rquest will cause a transition out of DECODE, once the controller transitions
-    // back into DECODE we're done handling the request.
-    assign exception_req_done =
-      exception_req_pending & (ctrl_fsm_cs != DECODE) & (ctrl_fsm_ns == DECODE);
-
-    assign exception_req_needs_pc_set = enter_debug_mode | handle_irq | special_req_pc_change;
-
-    // An exception PC set uses specific PC types
-    assign exception_pc_set =
-      exception_req_pending & (pc_set_o & (pc_mux_o inside {PC_EXC, PC_ERET, PC_DRET}));
-
-    always @(posedge clk_i or negedge rst_ni) begin
-      if (!rst_ni) begin
-        exception_req_pending   <= 1'b0;
-        exception_req_accepted  <= 1'b0;
-        expect_exception_pc_set <= 1'b0;
-        seen_exception_pc_set   <= 1'b0;
-      end else begin
-        // Keep `exception_req_pending` asserted once an exception_req is seen until it is done
-        exception_req_pending <= (exception_req_pending | exception_req) & ~exception_req_done;
-
-        // The exception req has been accepted once the controller transitions out of decode
-        exception_req_accepted <= (exception_req_accepted & ~exception_req_done) |
-          (exception_req & ctrl_fsm_ns != DECODE);
-
-        // Set `expect_exception_pc_set` if exception req needs one and keep it asserted until
-        // exception req is done
-        expect_exception_pc_set <= (expect_exception_pc_set | exception_req_needs_pc_set) &
-          ~exception_req_done;
-
-        // Keep `seen_exception_pc_set` asserted once an exception PC set is seen until the
-        // exception req is done
-        seen_exception_pc_set <= (seen_exception_pc_set | exception_pc_set) & ~exception_req_done;
-      end
-    end
-
-    // Once an exception request has been accepted it must be handled before controller goes back to
-    // DECODE
-    `ASSERT(IbexNoDoubleExceptionReq, exception_req_accepted |-> ctrl_fsm_cs != DECODE)
-
-    // Only signal ready, allowing a new instruction into ID, if there is no exception request
-    // pending or it is done this cycle.
-    `ASSERT(IbexDontSkipExceptionReq,
-      id_in_ready_o |-> !exception_req_pending || exception_req_done)
-
-    // Once a PC set has been performed for an exception request there must not be any other
-    // excepting those to move into debug mode.
-    `ASSERT(IbexNoDoubleSpecialReqPCSet,
-      seen_exception_pc_set &&
-        !((ctrl_fsm_cs inside {DBG_TAKEN_IF, DBG_TAKEN_ID}) &&
-          (pc_mux_o == PC_EXC) && (exc_pc_mux_o == EXC_PC_DBD))
-      |-> !pc_set_o)
-
-    // When an exception request is done there must have been an appropriate PC set (either this
-    // cycle or a previous one).
-    `ASSERT(IbexSetExceptionPCOnSpecialReqIfExpected,
-      exception_req_pending && expect_exception_pc_set && exception_req_done |->
-      seen_exception_pc_set || exception_pc_set)
-
-    // If there's a pending exception req that doesn't need a PC set we must not see one
-    `ASSERT(IbexNoPCSetOnSpecialReqIfNotExpected,
-      exception_req_pending && !expect_exception_pc_set |-> ~pc_set_o)
-
-    // If entering or exiting debug mode, the pipeline must be flushed. This is because Ibex
-    // currently does not support some of the pipeline stages being in debug mode; either all or
-    // none of the pipeline stages must be in debug mode. As `flush_id_o` only affects the ID/EX
-    // stage but does not prevent a fetched instruction from proceeding to ID/EX the next cycle, the
-    // assertion additionally requires `pc_set_o`, which sets the PC in the IF stage to a new value,
-    // hence preventing a fetched instruction from proceeding to the ID/EX stage in the next cycle.
-    `ASSERT(IbexPipelineFlushOnChangingDebugMode,
-      debug_mode_d != debug_mode_q |-> flush_id_o & pc_set_o)
-  `endif
+  // If entering or exiting debug mode, the pipeline must be flushed. This is because Ibex
+  // currently does not support some of the pipeline stages being in debug mode; either all or
+  // none of the pipeline stages must be in debug mode. As `flush_id_o` only affects the ID/EX
+  // stage but does not prevent a fetched instruction from proceeding to ID/EX the next cycle, the
+  // assertion additionally requires `pc_set_o`, which sets the PC in the IF stage to a new value,
+  // hence preventing a fetched instruction from proceeding to the ID/EX stage in the next cycle.
+  `ASSERT(IbexPipelineFlushOnChangingDebugMode,
+    debug_mode_d != debug_mode_q |-> flush_id_o & pc_set_o)
 
   `ifdef RVFI
-    // Workaround for internal verilator error when using hierarchical refers to calcuate this
+    // Workaround for internal verilator error when using hierarchical refers to calculate this
     // directly in ibex_core
     logic rvfi_flush_next;
 

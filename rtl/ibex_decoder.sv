@@ -83,6 +83,7 @@ module ibex_decoder #(
   // CSRs
   output logic                 csr_access_o,          // access to CSR
   output ibex_pkg::csr_op_e    csr_op_o,              // operation to perform on CSR
+  output ibex_pkg::csr_num_e   csr_addr_o,            // CSR address
 
   // LSU
   output logic                 data_req_o,            // start transaction to data memory
@@ -137,6 +138,8 @@ module ibex_decoder #(
   assign imm_b_type_o = { {19{instr[31]}}, instr[31], instr[7], instr[30:25], instr[11:8], 1'b0 };
   assign imm_u_type_o = { instr[31:12], 12'b0 };
   assign imm_j_type_o = { {12{instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0 };
+
+  assign csr_addr_o = csr_num_e'(instr[31:20]);
 
   // immediate for CSR manipulation (zero extended)
   assign zimm_rs1_type_o = { 27'b0, instr_rs1 }; // rs1
@@ -430,11 +433,10 @@ module ibex_decoder #(
                   end
                 end
                 5'b0_0001: begin
-                  if (instr[26] == 1'b0) begin                                        // unshfl
-                    illegal_insn = (RV32B == RV32BOTEarlGrey || RV32B == RV32BFull) ? 1'b0 : 1'b1;
-                  end else begin
-                    illegal_insn = 1'b1;
-                  end
+                  // Since instr[26] is known to be 0, this must be the "unshfl" instruction, which
+                  // is part of the RISC-V bitmanip extension. This is supported for the
+                  // RV32BOTEarlGrey and RV32BFull bitmanip configurations.
+                  illegal_insn = (RV32B == RV32BOTEarlGrey || RV32B == RV32BFull) ? 1'b0 : 1'b1;
                 end
 
                 default: illegal_insn = 1'b1;
@@ -1168,9 +1170,10 @@ module ibex_decoder #(
           alu_op_b_mux_sel_o = OP_B_IMM;
         end else begin
           // instruction to read/modify CSR
-          alu_op_b_mux_sel_o = OP_B_IMM;
           imm_a_mux_sel_o    = IMM_A_Z;
-          imm_b_mux_sel_o    = IMM_B_I;  // CSR address is encoded in I imm
+
+          // No need for operand/immediate B mux selection. The CSR address is fed out as csr_addr_o
+          // as the CSR address always comes from the same field in the instruction.
 
           if (instr_alu[14]) begin
             // rs1 field is used as immediate
@@ -1193,7 +1196,7 @@ module ibex_decoder #(
   // instruction exceptions
   assign illegal_insn_o = illegal_insn | illegal_reg_rv32e;
 
-  // do not propgate regfile write enable if non-available registers are accessed in RV32E
+  // do not propagate regfile write enable if non-available registers are accessed in RV32E
   assign rf_we_o = rf_we & ~illegal_reg_rv32e;
 
   // Not all bits are used
