@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright lowRISC contributors.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -24,6 +24,9 @@ fi
 if [ -z "$GITHUB_ACTIONS" ]; then
   GITHUB_PATH=/dev/null
 fi
+
+# Use non-default mirror for Ubuntu packages, because the default mirror currently have problems.
+$SUDO_CMD sed -i -E -e 's!http://(archive|security).ubuntu.com!http://europe-west2.gce.archive.ubuntu.com!g' /etc/apt/sources.list
 
 case "$ID-$VERSION_ID" in
   ubuntu-20.04|ubuntu-22.04)

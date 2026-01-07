@@ -433,11 +433,10 @@ module ibex_decoder #(
                   end
                 end
                 5'b0_0001: begin
-                  if (instr[26] == 1'b0) begin                                        // unshfl
-                    illegal_insn = (RV32B == RV32BOTEarlGrey || RV32B == RV32BFull) ? 1'b0 : 1'b1;
-                  end else begin
-                    illegal_insn = 1'b1;
-                  end
+                  // Since instr[26] is known to be 0, this must be the "unshfl" instruction, which
+                  // is part of the RISC-V bitmanip extension. This is supported for the
+                  // RV32BOTEarlGrey and RV32BFull bitmanip configurations.
+                  illegal_insn = (RV32B == RV32BOTEarlGrey || RV32B == RV32BFull) ? 1'b0 : 1'b1;
                 end
 
                 default: illegal_insn = 1'b1;
@@ -1197,7 +1196,7 @@ module ibex_decoder #(
   // instruction exceptions
   assign illegal_insn_o = illegal_insn | illegal_reg_rv32e;
 
-  // do not propgate regfile write enable if non-available registers are accessed in RV32E
+  // do not propagate regfile write enable if non-available registers are accessed in RV32E
   assign rf_we_o = rf_we & ~illegal_reg_rv32e;
 
   // Not all bits are used
