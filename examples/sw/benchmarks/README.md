@@ -1,22 +1,29 @@
 # Benchmarks
 
-This directory contains benchmarks that can be run on ibex simple system.
+This directory contains benchmarks that can be run on Ibex simple system.
 Benchmarks may rely on code external to this directory (e.g. it may be found in
 `vendor/`) see the specific benchmark information below for details on how to
 build and run each benchmark and where benchmark code is located.
 
 ## Building Simulation
 
-All of these benchmarks run on Simple System. A verilator simulation suitable
+All of these benchmarks run on Simple System. A Verilator simulation suitable
 for running them can be built with:
 
-```
-fusesoc --cores-root=. run --target=sim --setup --build lowrisc:ibex:ibex_simple_system `./util/ibex_config.py maxperf fusesoc_opts`
+```shell
+fusesoc --cores-root=. run --target=sim --setup --build lowrisc:ibex:ibex_simple_system `./util/ibex_config.py maxperf-pmp-bmfull fusesoc_opts`
 ```
 
-This will build a simulation of Ibex in the 'maxperf' configuration.
+This will build a simulation of Ibex in the 'maxperf-pmp-bmfull' configuration.
 It is one of several pre-defined ibex configurations, others can be used.
 These are specified in the `ibex_configs.yaml` file.
+
+You can also test how the instruction cache affects performance.
+To see this effect you must specify a delay on the instruction accesses because with single-cycle RAM access an instruction cache does not help.
+
+```shell
+fusesoc --cores-root=. run --target=sim --setup --build lowrisc:ibex:ibex_simple_system `./util/ibex_config.py maxperf-pmp-bmfull-icache fusesoc_opts` --INSTR_CYCLE_DELAY=5
+```
 
 See examples/simple_system/README.md for full details.
 
@@ -32,13 +39,13 @@ running on simple system is found in `examples/sw/benchmarks/coremark`.
 
 To build CoreMark:
 
-```
+```shell
 make -C ./examples/sw/benchmarks/coremark/
 ```
 
 To run CoreMark (after building a suitable simulator binary, see above):
 
-```
+```shell
 build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system --meminit=ram,examples/sw/benchmarks/coremark/coremark.elf
 ```
 
@@ -71,7 +78,7 @@ Correct operation validated. See README.md for run and reporting rules.
 Different ISAs (to choose different RISC-V ISA extensions) can be selected by
 passing the desired ISA string into `RV_ISA` when invoking make.
 
-```
+```shell
 make -C ./examples/sw/benchmarks/coremark clean
 make -C ./examples/sw/benchmarks/coremark RV_ISA=rv32imc
 ```

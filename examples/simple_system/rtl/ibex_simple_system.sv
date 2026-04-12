@@ -14,8 +14,16 @@
   `define RV32B ibex_pkg::RV32BNone
 `endif
 
+`ifndef RV32ZC
+  `define RV32ZC ibex_pkg::RV32ZcaZcbZcmp
+`endif
+
 `ifndef RegFile
   `define RegFile ibex_pkg::RegFileFF
+`endif
+
+`ifndef INSTR_CYCLE_DELAY
+  `define INSTR_CYCLE_DELAY 0
 `endif
 
 /**
@@ -36,6 +44,7 @@ module ibex_simple_system (
 );
 
   parameter bit                 SecureIbex               = 1'b0;
+  parameter int unsigned        LockstepOffset           = 1;
   parameter bit                 ICacheScramble           = 1'b0;
   parameter bit                 PMPEnable                = 1'b0;
   parameter int unsigned        PMPGranularity           = 0;
@@ -45,12 +54,14 @@ module ibex_simple_system (
   parameter bit                 RV32E                    = 1'b0;
   parameter ibex_pkg::rv32m_e   RV32M                    = `RV32M;
   parameter ibex_pkg::rv32b_e   RV32B                    = `RV32B;
+  parameter ibex_pkg::rv32zc_e  RV32ZC                   = `RV32ZC;
   parameter ibex_pkg::regfile_e RegFile                  = `RegFile;
   parameter bit                 BranchTargetALU          = 1'b0;
   parameter bit                 WritebackStage           = 1'b0;
   parameter bit                 ICache                   = 1'b0;
   parameter bit                 DbgTriggerEn             = 1'b0;
   parameter bit                 ICacheECC                = 1'b0;
+  parameter bit                 ICacheTweakInfection     = 1'b0;
   parameter bit                 BranchPredictor          = 1'b0;
   parameter                     SRAMInitFile             = "";
 
@@ -187,27 +198,30 @@ module ibex_simple_system (
   end
 
   ibex_top_tracing #(
-      .SecureIbex      ( SecureIbex       ),
-      .ICacheScramble  ( ICacheScramble   ),
-      .PMPEnable       ( PMPEnable        ),
-      .PMPGranularity  ( PMPGranularity   ),
-      .PMPNumRegions   ( PMPNumRegions    ),
-      .MHPMCounterNum  ( MHPMCounterNum   ),
-      .MHPMCounterWidth( MHPMCounterWidth ),
-      .RV32E           ( RV32E            ),
-      .RV32M           ( RV32M            ),
-      .RV32B           ( RV32B            ),
-      .RegFile         ( RegFile          ),
-      .BranchTargetALU ( BranchTargetALU  ),
-      .ICache          ( ICache           ),
-      .ICacheECC       ( ICacheECC        ),
-      .WritebackStage  ( WritebackStage   ),
-      .BranchPredictor ( BranchPredictor  ),
-      .DbgTriggerEn    ( DbgTriggerEn     ),
-      .DmBaseAddr      ( 32'h00100000     ),
-      .DmAddrMask      ( 32'h00000003     ),
-      .DmHaltAddr      ( 32'h00100000     ),
-      .DmExceptionAddr ( 32'h00100000     )
+      .SecureIbex           ( SecureIbex           ),
+      .LockstepOffset       ( LockstepOffset       ),
+      .ICacheScramble       ( ICacheScramble       ),
+      .PMPEnable            ( PMPEnable            ),
+      .PMPGranularity       ( PMPGranularity       ),
+      .PMPNumRegions        ( PMPNumRegions        ),
+      .MHPMCounterNum       ( MHPMCounterNum       ),
+      .MHPMCounterWidth     ( MHPMCounterWidth     ),
+      .RV32E                ( RV32E                ),
+      .RV32M                ( RV32M                ),
+      .RV32B                ( RV32B                ),
+      .RV32ZC               ( RV32ZC               ),
+      .RegFile              ( RegFile              ),
+      .BranchTargetALU      ( BranchTargetALU      ),
+      .ICache               ( ICache               ),
+      .ICacheECC            ( ICacheECC            ),
+      .ICacheTweakInfection ( ICacheTweakInfection ),
+      .WritebackStage       ( WritebackStage       ),
+      .BranchPredictor      ( BranchPredictor      ),
+      .DbgTriggerEn         ( DbgTriggerEn         ),
+      .DmBaseAddr           ( 32'h00100000         ),
+      .DmAddrMask           ( 32'h00000003         ),
+      .DmHaltAddr           ( 32'h00100000         ),
+      .DmExceptionAddr      ( 32'h00100000         )
     ) u_top (
       .clk_i                     (clk_sys),
       .rst_ni                    (rst_sys_n),
@@ -262,12 +276,25 @@ module ibex_simple_system (
       .alert_minor_o             (),
       .alert_major_internal_o    (),
       .alert_major_bus_o         (),
-      .core_sleep_o              ()
+      .core_sleep_o              (),
+
+      .lockstep_cmp_en_o         (),
+
+      .data_req_shadow_o         (),
+      .data_we_shadow_o          (),
+      .data_be_shadow_o          (),
+      .data_addr_shadow_o        (),
+      .data_wdata_shadow_o       (),
+      .data_wdata_intg_shadow_o  (),
+
+      .instr_req_shadow_o        (),
+      .instr_addr_shadow_o       ()
     );
 
   // SRAM block for instruction and data storage
   ram_2p #(
       .Depth(1024*1024/4),
+      .BExtraDelay(`INSTR_CYCLE_DELAY),
       .MemInitFile(SRAMInitFile)
     ) u_ram (
       .clk_i       (clk_sys),

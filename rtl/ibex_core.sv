@@ -30,6 +30,7 @@ module ibex_core import ibex_pkg::*; #(
   parameter bit                     WritebackStage              = 1'b0,
   parameter bit                     ICache                      = 1'b0,
   parameter bit                     ICacheECC                   = 1'b0,
+  parameter bit                     ICacheTweakInfection        = 1'b0,
   parameter int unsigned            BusSizeECC                  = BUS_SIZE,
   parameter int unsigned            TagSizeECC                  = IC_TAG_SIZE,
   parameter int unsigned            LineSizeECC                 = IC_LINE_SIZE,
@@ -425,22 +426,23 @@ module ibex_core import ibex_pkg::*; #(
   //////////////
 
   ibex_if_stage #(
-    .DmHaltAddr       (DmHaltAddr),
-    .DmExceptionAddr  (DmExceptionAddr),
-    .DummyInstructions(DummyInstructions),
-    .ICache           (ICache),
-    .RV32ZC           (RV32ZC),
-    .ICacheECC        (ICacheECC),
-    .BusSizeECC       (BusSizeECC),
-    .TagSizeECC       (TagSizeECC),
-    .LineSizeECC      (LineSizeECC),
-    .PCIncrCheck      (PCIncrCheck),
-    .ResetAll         (ResetAll),
-    .RndCnstLfsrSeed  (RndCnstLfsrSeed),
-    .RndCnstLfsrPerm  (RndCnstLfsrPerm),
-    .BranchPredictor  (BranchPredictor),
-    .MemECC           (MemECC),
-    .MemDataWidth     (MemDataWidth)
+    .DmHaltAddr           (DmHaltAddr),
+    .DmExceptionAddr      (DmExceptionAddr),
+    .DummyInstructions    (DummyInstructions),
+    .ICache               (ICache),
+    .RV32ZC               (RV32ZC),
+    .ICacheECC            (ICacheECC),
+    .ICacheTweakInfection (ICacheTweakInfection),
+    .BusSizeECC           (BusSizeECC),
+    .TagSizeECC           (TagSizeECC),
+    .LineSizeECC          (LineSizeECC),
+    .PCIncrCheck          (PCIncrCheck),
+    .ResetAll             (ResetAll),
+    .RndCnstLfsrSeed      (RndCnstLfsrSeed),
+    .RndCnstLfsrPerm      (RndCnstLfsrPerm),
+    .BranchPredictor      (BranchPredictor),
+    .MemECC               (MemECC),
+    .MemDataWidth         (MemDataWidth)
   ) if_stage_i (
     .clk_i (clk_i),
     .rst_ni(rst_ni),
@@ -1932,10 +1934,13 @@ module ibex_core import ibex_pkg::*; #(
   end
 
 `else
-  logic unused_instr_new_id, unused_instr_id_done, unused_instr_done_wb;
+  logic unused_instr_new_id, unused_instr_id_done, unused_instr_done_wb,
+        unused_instr_expanded_id, unused_instr_gets_expanded_id;
   assign unused_instr_id_done = instr_id_done;
   assign unused_instr_new_id = instr_new_id;
   assign unused_instr_done_wb = instr_done_wb;
+  assign unused_instr_expanded_id = ^instr_expanded_id;
+  assign unused_instr_gets_expanded_id = ^instr_gets_expanded_id;
 `endif
 
   // Certain parameter combinations are not supported
