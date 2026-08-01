@@ -27,7 +27,7 @@ jobs:
     name: Run quality checks (Lint and DV)
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # Fetch all history so that we can run git diff on the base branch
           fetch-depth: 0
@@ -50,6 +50,10 @@ jobs:
           verilator --version
           riscv32-unknown-elf-gcc --version
           verible-verilog-lint --version
+
+      - name: Commit metadata
+        run: ./ci/lint-commits.sh "$GITHUB_BASE_REF"
+        if: ${{ github.event_name == 'pull_request' }}
 
       # Verible format is experimental so only run on default config for now,
       # will eventually become part of the per-config CI

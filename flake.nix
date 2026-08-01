@@ -6,6 +6,10 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    # Intentionally not following the main nixpkgs — this pin provides GCC 9.3 /
+    # glibc 2.32 to build spike shared libraries with a low symbol-version floor
+    # compatible with older bundled toolchains.
+    nixpkgs-gcc93.url = "github:NixOS/nixpkgs/nixos-20.09";
     flake-utils.url = "github:numtide/flake-utils";
 
     pyproject-nix = {
@@ -16,6 +20,10 @@
       url = "github:pyproject-nix/uv2nix";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.pyproject-nix.follows = "pyproject-nix";
+    };
+    uv2nix_hammer_overrides = {
+      url = "github:TyberiusPrime/uv2nix_hammer_overrides";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     pyproject-build-systems = {
       url = "github:pyproject-nix/build-system-pkgs";
@@ -57,6 +65,12 @@
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Deps for synthesis flows
+    sv2v = {
+      url = "github:zachjs/sv2v";
+      flake = false;
+    };
   };
 
   # The lowRISC public nix-cache contains builds of nix packages used by lowRISC, primarily coming from github:lowRISC/lowrisc-nix.
@@ -78,10 +92,85 @@
       let
         pkgs = import inputs.nixpkgs {
           inherit system;
+          config = {
+            allowUnfree = true;
+            allowBroken = true; # sv2v marked as broken.
+          };
         };
         inherit (pkgs) lib;
 
+        # Older nixpkgs providing GCC 9.3 / glibc 2.32, used only to compile
+        # spike so the resulting .so has a low symbol-version floor compatible
+        # with older bundled toolchains.
+        pkgsCompat = import inputs.nixpkgs-gcc93 { inherit system; };
+
         mkshell-minimal = inputs.mkshell-minimal pkgs;
+
+        ################
+        # DEPENDENCIES #
+        ################
+
+        # Python environment, as defined in ./nix/pythonEnv/pyproject.toml
+        pythonEnv = import ./nix/pythonEnv {inherit inputs pkgs;};
+
+        # lowRISC fork of Spike used as a cosimulation model for Ibex Verification.
+        # Built via pkgsCompat (nixos-20.09, GCC 9.3 / glibc 2.32) so the resulting
+        # shared libraries carry a low symbol-version floor compatible with older
+        # bundled toolchains.
+        spike = pkgsCompat.spike.overrideAttrs (prev: {
+          pname = "spike-ibex-cosim";
+          version = "0.5-dev";
+          src = pkgsCompat.fetchFromGitHub {
+            owner = "lowRISC";
+            repo = "riscv-isa-sim";
+            rev = "4b97396656485a129119deaec2ba35e5bf354841";
+            sha256 = "sha256-oF2poKMYoYXytqo/t6eqngJgrr4WFHvKj/cKsGQ88DQ=";
+          };
+          configureFlags = (prev.configureFlags or []) ++ ["--enable-commitlog" "--enable-misaligned"];
+          # Statically embed libstdc++ and libgcc so the .so carries no
+          # DT_NEEDED on libstdc++.so.6 at all.
+          LDFLAGS = (prev.LDFLAGS or "") + " -static-libstdc++ -static-libgcc";
+        });
+
+        # Currently we don't build the riscv-toolchain from src, we use a github release
+        # See https://github.com/lowRISC/lowrisc-nix/blob/main/pkgs/lowrisc-toolchain-gcc-rv32imcb.nix
+        rv32imcb_toolchain = inputs.lowrisc-nix.packages.${system}.lowrisc-toolchain-gcc-rv32imcb;
+
+        ibex_runtime_deps = with pkgs; [
+          libelf # Used in DPI code
+          zlib # Verilator run-time dep
+          numactl # libnuma.so.1, required by VCS
+        ];
+
+        sim_shared_lib_deps = with pkgs; [
+          elfutils
+          openssl
+        ];
+
+        ibex_project_deps =
+          [
+            pythonEnv
+            spike
+            rv32imcb_toolchain
+          ] ++
+          sim_shared_lib_deps ++
+          (with pkgs; [
+            # Tools
+            cmake
+            pkg-config
+
+            # Applications
+            verilator
+            gtkwave
+
+            # Libraries
+            srecord
+
+            # Lints & Checking
+            mypy
+          ]);
+
+        ibex_syn = import ./nix/syn.nix {inherit inputs pkgs;};
 
         # lowRISC fork of the Sail repository. The SAIL -> SV flow is used to generate the reference model.
         lowrisc_sail = import ./nix/lowrisc_sail.nix {
@@ -163,6 +252,11 @@
           gnumake
           patch
         ]);
+
+        ################
+        # ENVIRONMENTS #
+        ################
+
         # The formal environment has an untracked external requirement on Cadence Jasper.
         # Add a check here which will prevent launching the devShell if Jasper is not found on the user's path.
         # TODO: Is this robust? Do we want to check available features?
@@ -193,6 +287,50 @@
           EOF
         '';
 
+        # These exports are required by scripts within the Ibex DV flow.
+        ibex_profile_common = ''
+          export SPIKE_PATH=${spike}/bin
+
+          export RISCV_TOOLCHAIN=${rv32imcb_toolchain}
+          export RISCV_GCC=${rv32imcb_toolchain}/bin/riscv32-unknown-elf-gcc
+          export RISCV_OBJCOPY=${rv32imcb_toolchain}/bin/riscv32-unknown-elf-objcopy
+        '';
+
+        shell = pkgs.lib.makeOverridable pkgs.mkShell {
+          name = "ibex-devshell";
+          buildInputs = ibex_runtime_deps;
+          nativeBuildInputs = ibex_project_deps;
+          shellHook = ''
+            # Unset these environment variables provided by stdenv, as the SS makefiles will not
+            # be able to discover the riscv toolchain versions otherwise.
+            unset CC OBJCOPY OBJDUMP
+
+            ${ibex_profile_common}
+          '';
+        };
+
+        syn_shell = shell.override (prev: {
+          name = "ibex-devshell-synthesis";
+          nativeBuildInputs = prev.nativeBuildInputs ++ ibex_syn.deps;
+          shellHook = prev.shellHook + ibex_syn.profile;
+        });
+
+        # This shell uses mkShellNoCC as the stdenv CC can interfere with EDA tools.
+        eda_shell = pkgs.lib.makeOverridable pkgs.mkShellNoCC {
+          name = "ibex-devshell-eda";
+          buildInputs = ibex_runtime_deps;
+          nativeBuildInputs = ibex_project_deps;
+          shellHook = ''
+            ${ibex_profile_common}
+
+            # libnuma.so.1 is a bare DT_NEEDED in VCS's simv with no RPATH entry for it.
+            # On NixOS there is no FHS fallback, so we must surface numactl explicitly.
+            # Appending ensures the system library is preferred on FHS distros (e.g. Ubuntu).
+            # zlib is also required for some waveform dumping libs.
+            export LD_LIBRARY_PATH=''${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${pkgs.lib.makeLibraryPath [ pkgs.numactl pkgs.zlib ]}
+          '';
+        };
+
         in {
           packages = {
             # Export the package for the lowrisc fork of the sail compiler. This allows us
@@ -200,6 +338,7 @@
             inherit lowrisc_sail;
           };
           devShells = rec {
+            inherit shell syn_shell eda_shell;
             formal = mkshell-minimal {
               packages = standard_deps;
               shellHook = check_jg + exports;
@@ -232,7 +371,7 @@
                 export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib/ # for rIC3, not sure why this should be necessary though
               '';
             };
-        };
-      }
+          };
+        }
   );
 }
