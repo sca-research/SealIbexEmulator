@@ -16,6 +16,7 @@ filesets:
       - lowrisc:ibex:ibex_icache
       - lowrisc:dv:dv_fcov_macros
     files:
+      - rtl/ibex_cheriot_ex.sv
       - rtl/ibex_alu.sv
       - rtl/ibex_branch_predict.sv
       - rtl/ibex_compressed_decoder.sv
@@ -125,6 +126,12 @@ parameters:
     default: 0
     paramtype: vlogparam
     description: "Enable support for debug triggers. "
+
+  DbgHwBreakNum:
+    datatype: int
+    default: 1
+    paramtype: vlogparam
+    description: "Number of debug triggers (hardware breakpoints)"
 
   SecureIbex:
     datatype: int

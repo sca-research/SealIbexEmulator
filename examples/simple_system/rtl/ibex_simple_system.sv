@@ -26,6 +26,10 @@
   `define INSTR_CYCLE_DELAY 0
 `endif
 
+`ifndef BASE_ISA
+  `define BASE_ISA ibex_pkg::BaseIsaRV32IorCHERIoT
+`endif
+
 /**
  * Ibex simple system
  *
@@ -56,10 +60,12 @@ module ibex_simple_system (
   parameter ibex_pkg::rv32b_e   RV32B                    = `RV32B;
   parameter ibex_pkg::rv32zc_e  RV32ZC                   = `RV32ZC;
   parameter ibex_pkg::regfile_e RegFile                  = `RegFile;
+  parameter ibex_pkg::base_isa_e BaseIsa                 = `BASE_ISA;
   parameter bit                 BranchTargetALU          = 1'b0;
   parameter bit                 WritebackStage           = 1'b0;
   parameter bit                 ICache                   = 1'b0;
   parameter bit                 DbgTriggerEn             = 1'b0;
+  parameter int unsigned        DbgHwBreakNum            = 1;
   parameter bit                 ICacheECC                = 1'b0;
   parameter bit                 ICacheTweakInfection     = 1'b0;
   parameter bit                 BranchPredictor          = 1'b0;
@@ -201,6 +207,7 @@ module ibex_simple_system (
   end
 
   ibex_top_tracing #(
+      .BaseIsa              ( BaseIsa              ),
       .SecureIbex           ( SecureIbex           ),
       .LockstepOffset       ( LockstepOffset       ),
       .ICacheScramble       ( ICacheScramble       ),
@@ -221,6 +228,7 @@ module ibex_simple_system (
       .WritebackStage       ( WritebackStage       ),
       .BranchPredictor      ( BranchPredictor      ),
       .DbgTriggerEn         ( DbgTriggerEn         ),
+      .DbgHwBreakNum        ( DbgHwBreakNum        ),
       .DmBaseAddr           ( 32'h00100000         ),
       .DmAddrMask           ( 32'h00000003         ),
       .DmHaltAddr           ( 32'h00100000         ),
@@ -240,6 +248,8 @@ module ibex_simple_system (
       // First instruction executed is at 0x0 + 0x80
       .boot_addr_i               (32'h00100000),
 
+      .trvk_heap_base_addr_i     (32'h00000000),
+
       .instr_req_o               (instr_req),
       .instr_gnt_i               (instr_gnt),
       .instr_rvalid_i            (instr_rvalid),
@@ -256,9 +266,19 @@ module ibex_simple_system (
       .data_addr_o               (host_addr[CoreD]),
       .data_wdata_o              (host_wdata[CoreD]),
       .data_wdata_intg_o         (),
+      .data_tag_o                (),
       .data_rdata_i              (host_rdata[CoreD]),
       .data_rdata_intg_i         (data_rdata_intg),
+      .data_tag_i                (1'b0),
       .data_err_i                (host_err[CoreD]),
+
+      .trvk_revbm_req_o          (),
+      .trvk_revbm_gnt_i          (1'b0),
+      .trvk_revbm_rvalid_i       (1'b0),
+      .trvk_revbm_addr_o         (),
+      .trvk_revbm_rdata_i        ('0),
+      .trvk_revbm_rdata_intg_i   ('0),
+      .trvk_revbm_err_i          (1'b0),
 
       .irq_software_i            (1'b0),
       .irq_timer_i               (timer_irq),
@@ -292,7 +312,9 @@ module ibex_simple_system (
       .data_wdata_intg_shadow_o  (),
 
       .instr_req_shadow_o        (),
-      .instr_addr_shadow_o       ()
+      .instr_addr_shadow_o       (),
+
+      .cheriot_enable_i          (ibex_pkg::IbexMuBiOff)
     );
 
   // SRAM block for instruction and data storage

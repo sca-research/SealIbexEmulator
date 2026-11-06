@@ -39,23 +39,37 @@
         "type": "github"
       }
     },
+    "flake-utils_2": {
+      "inputs": {
+        "systems": "systems_2"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "gomod2nix": {
       "inputs": {
-        "flake-utils": [
-          "psgen",
-          "flake-utils"
-        ],
+        "flake-utils": "flake-utils_2",
         "nixpkgs": [
-          "psgen",
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1750314194,
-        "narHash": "sha256-SjpXWEeB+UIMzuCAF94PuyAXpJdnBLF45JvI6o4wKIU=",
+        "lastModified": 1770585520,
+        "narHash": "sha256-yBz9Ozd5Wb56i3e3cHZ8WcbzCQ9RlVaiW18qDYA/AzA=",
         "owner": "tweag",
         "repo": "gomod2nix",
-        "rev": "a5f75f563748599d448a4a076816041d7b0fc07e",
+        "rev": "1201ddd1279c35497754f016ef33d5e060f3da8d",
         "type": "github"
       },
       "original": {
@@ -74,11 +88,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1754918967,
-        "narHash": "sha256-YSDxooemjaHP1LBdF/+dldJMgIHBCXyy5gMb+uwbxLg=",
+        "lastModified": 1786372443,
+        "narHash": "sha256-remtZOOf+RtqgWFDYDvLd01KyzDexeWhBBdeDlbFDgw=",
         "owner": "lowrisc",
         "repo": "lowrisc-nix",
-        "rev": "d634ff6474ca3b5370eab2c890e4173c12618850",
+        "rev": "8479a3130685816b8c3cdd484a0f583fa2d8e4d1",
         "type": "github"
       },
       "original": {
@@ -140,33 +154,18 @@
         "url": "https://github.com/mndstrmr/yosys-slang"
       }
     },
-    "mkshell-minimal": {
-      "locked": {
-        "lastModified": 1700988624,
-        "narHash": "sha256-KJyiF67zVYOBkNltKhJATfSj+gfRFX9dSFIWDEBy2nQ=",
-        "owner": "viperML",
-        "repo": "mkshell-minimal",
-        "rev": "6b0868be06da900b5fe6ece05616b84e3cbd7944",
-        "type": "github"
-      },
-      "original": {
-        "owner": "viperML",
-        "repo": "mkshell-minimal",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1757810152,
-        "narHash": "sha256-Vp9K5ol6h0J90jG7Rm4RWZsCB3x7v5VPx588TQ1dkfs=",
+        "lastModified": 1788690626,
+        "narHash": "sha256-+v4I4LawmRD/mVxO7QIAerRrCkElp3YImzWkkUnvOTg=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "9a094440e02a699be5c57453a092a8baf569bdad",
+        "rev": "c25784012c9982bca5b3e0de87e90bbdac8927d3",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-25.05",
+        "ref": "nixos-26.05",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -208,7 +207,9 @@
         "flake-utils": [
           "flake-utils"
         ],
-        "gomod2nix": "gomod2nix",
+        "gomod2nix": [
+          "gomod2nix"
+        ],
         "nixpkgs": [
           "nixpkgs"
         ]
@@ -277,11 +278,11 @@
       "inputs": {
         "fenix": "fenix",
         "flake-utils": "flake-utils",
+        "gomod2nix": "gomod2nix",
         "lowrisc-nix": "lowrisc-nix",
         "lowrisc_sail": "lowrisc_sail",
         "lowrisc_sail_riscv": "lowrisc_sail_riscv",
         "lowrisc_yosys_slang": "lowrisc_yosys_slang",
-        "mkshell-minimal": "mkshell-minimal",
         "nixpkgs": "nixpkgs",
         "nixpkgs-gcc93": "nixpkgs-gcc93",
         "psgen": "psgen",
@@ -350,6 +351,21 @@
         "type": "github"
       },
       "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "systems_3": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
         "id": "systems",
         "type": "indirect"
       }
@@ -400,7 +416,7 @@
         "nixpkgs": [
           "nixpkgs"
         ],
-        "systems": "systems_2",
+        "systems": "systems_3",
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {

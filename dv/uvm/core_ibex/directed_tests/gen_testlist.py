@@ -97,6 +97,103 @@ def add_configs_and_handwritten_directed_tests():
   test_srcs: mcounteren_test/mcounteren_lock_test.S
   config: riscv-tests
 
+- test: debug_trigger_cause_test
+  desc: >
+    An ebreak, a single step or a halt request from WFI enters debug mode
+    while an execute trigger is set on the next instruction. The trigger
+    does not fire, so dcsr.cause must name the entry. Triggers on reached
+    instructions still fire.
+  iterations: 1
+  test_srcs: debug_trigger_cause_test/debug_trigger_cause_test.S
+  config: riscv-tests
+  rtl_test: core_ibex_debug_halt_wfi_test
+  rtl_params:
+    PMPEnable: 1
+    DbgTriggerEn: 1
+  sim_opts: +enable_debug_seq=1
+
+- test: zcmp_reserved_test
+  desc: >
+    Reserved Zcmp encodings trap as illegal instructions and are not
+    expanded. Cosim mismatches are not fatal because the cosim does not
+    enable Zcmp.
+  iterations: 1
+  test_srcs: zcmp_reserved_test/zcmp_reserved_test.S
+  config: riscv-tests
+  rtl_params:
+    PMPEnable: 1
+    RV32ZC: ["ibex_pkg::RV32ZcaZcmp", "ibex_pkg::RV32ZcaZcbZcmp"]
+  sim_opts: +disable_cosim=1
+
+- test: dummy_instr_minstret_test
+  desc: >
+    Dummy instructions must not be counted in minstret: the minstret delta
+    over a fixed block is the same with dummies off, on and off again.
+  iterations: 1
+  test_srcs: dummy_instr_test/dummy_instr_minstret_test.S
+  config: riscv-tests
+  rtl_params:
+    PMPEnable: 1
+    SecureIbex: 1
+
+- test: dummy_instr_zcmp_test
+  desc: >
+    Dummy instructions must not disturb an expanded Zcmp sequence. Cosim
+    mismatches are not fatal because the cosim does not enable Zcmp.
+  iterations: 1
+  test_srcs: dummy_instr_test/dummy_instr_zcmp_test.S
+  config: riscv-tests
+  rtl_params:
+    PMPEnable: 1
+    SecureIbex: 1
+    RV32ZC: ["ibex_pkg::RV32ZcaZcmp", "ibex_pkg::RV32ZcaZcbZcmp"]
+  sim_opts: +disable_cosim=1
+
+- test: dummy_instr_zcmp_debug_test
+  desc: >
+    dummy_instr_zcmp_test under random debug requests. Debug entry must
+    not split a Zcmp sequence.
+  iterations: 1
+  test_srcs: dummy_instr_test/dummy_instr_zcmp_test.S
+  config: riscv-tests
+  rtl_test: core_ibex_directed_stress_test
+  rtl_params:
+    PMPEnable: 1
+    SecureIbex: 1
+    RV32ZC: ["ibex_pkg::RV32ZcaZcmp", "ibex_pkg::RV32ZcaZcbZcmp"]
+  sim_opts: +disable_cosim=1 +enable_debug_seq=1 +max_interval=500
+
+- test: dummy_instr_zcmp_irq_test
+  desc: >
+    dummy_instr_zcmp_test under random interrupts. An interrupt must not
+    split the committing micro-ops of a Zcmp sequence.
+  iterations: 1
+  test_srcs: dummy_instr_test/dummy_instr_zcmp_test.S
+  config: riscv-tests
+  rtl_test: core_ibex_directed_stress_test
+  rtl_params:
+    PMPEnable: 1
+    SecureIbex: 1
+    RV32ZC: ["ibex_pkg::RV32ZcaZcmp", "ibex_pkg::RV32ZcaZcbZcmp"]
+  sim_opts: +disable_cosim=1 +enable_irq_single_seq=1
+
+- test: debug_zcmp_trap_test
+  desc: >
+    A single step over a cm.mva01s that U mode may not fetch, or over a
+    cm.push whose first store faults, must enter debug mode at the trap
+    vector, before the first instruction of the handler. So must an
+    execute trigger on the trap vector after the cm.push fault.
+  iterations: 1
+  test_srcs: debug_zcmp_trap_test/debug_zcmp_trap_test.S
+  config: riscv-tests
+  rtl_test: core_ibex_debug_halt_once_test
+  rtl_params:
+    PMPEnable: 1
+    RV32E: 0
+    DbgTriggerEn: 1
+    RV32ZC: ["ibex_pkg::RV32ZcaZcmp", "ibex_pkg::RV32ZcaZcbZcmp"]
+  sim_opts: +disable_cosim=1 +enable_debug_seq=1
+
 - test: pmp_mseccfg_test_rlb1_l0_0_u0
   desc: >
     mseccfg test
@@ -432,13 +529,11 @@ def append_directed_testlist(tests, test_suite, test_suite_name, is_assembly):
 # Test-suite: {test_suite_name}
 '''.format(test_suite_name = test_suite_name)
     extension = '.S' if is_assembly else '.c'
-    extension_grep = ' | egrep .S' if is_assembly else ' | egrep .c'
 
     for test_group_name in tests:
-        available_tests = os.popen('ls '+test_suite+test_group_name+extension_grep).read()
-        available_testlist = []
-        for test in available_tests.split('\n')[:-1]:
-            available_testlist.append(test)
+        # Sorted, so the output does not depend on the locale.
+        available_testlist = sorted(f for f in os.listdir(test_suite + test_group_name)
+                                    if f.endswith(extension))
         for test_name_str in available_testlist:
             test_name = test_name_str.split(extension)[0]
             testlist_string = testlist_string + '''
@@ -453,14 +548,6 @@ def append_directed_testlist(tests, test_suite, test_suite_name, is_assembly):
 
     with open('directed_testlist.yaml', "a") as f:
         f.write(testlist_string)
-
-def list_tests(dir):
-    testlist_str = os.popen('ls '+dir).read()
-    testlist = []
-    for test in testlist_str.split('\n')[:-1]:
-        testlist.append(test)
-        print(testlist)
-    return testlist
 
 def _main() -> int:
     parser = argparse.ArgumentParser()

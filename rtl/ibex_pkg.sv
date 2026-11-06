@@ -1,5 +1,6 @@
 // Copyright lowRISC contributors.
 // Copyright 2017 ETH Zurich and University of Bologna, see also CREDITS.md.
+// Copyright Microsoft Corporation
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -33,6 +34,11 @@ package ibex_pkg;
   /////////////////////
 
   typedef enum integer {
+    BaseIsaRV32I          = 0, // only RV32I
+    BaseIsaRV32IorCHERIoT = 1  // dual base ISA: RV32I/CHERIoT runtime switchable
+  } base_isa_e;
+
+  typedef enum integer {
     RegFileFF    = 0,
     RegFileFPGA  = 1,
     RegFileLatch = 2
@@ -46,10 +52,9 @@ package ibex_pkg;
   } rv32m_e;
 
   typedef enum integer {
-    RV32BNone       = 0,
-    RV32BBalanced   = 1,
-    RV32BOTEarlGrey = 2,
-    RV32BFull       = 3
+    RV32BNone     = 0,
+    RV32BBalanced = 1,
+    RV32BFull     = 2
   } rv32b_e;
 
   typedef enum integer {
@@ -74,7 +79,9 @@ package ibex_pkg;
     OPCODE_BRANCH   = 7'h63,
     OPCODE_JALR     = 7'h67,
     OPCODE_JAL      = 7'h6f,
-    OPCODE_SYSTEM   = 7'h73
+    OPCODE_SYSTEM   = 7'h73,
+    OPCODE_CHERI    = 7'h5b,
+    OPCODE_AUICGP   = 7'h7b
   } opcode_e;
 
 
@@ -101,17 +108,15 @@ package ibex_pkg;
     ALU_SRL,
     ALU_SLL,
     // RV32B
-    ALU_SRO,
-    ALU_SLO,
     ALU_ROR,
     ALU_ROL,
-    ALU_GREV,
-    ALU_GORC,
-    ALU_SHFL,
-    ALU_UNSHFL,
-    ALU_XPERM_N,
-    ALU_XPERM_B,
-    ALU_XPERM_H,
+    ALU_REV8,
+    ALU_BREV8,
+    ALU_ORCB,
+    ALU_ZIP,
+    ALU_UNZIP,
+    ALU_XPERM4,
+    ALU_XPERM8,
 
     // Address Calculations
     // RV32B
@@ -135,7 +140,6 @@ package ibex_pkg;
     // Pack
     // RV32B
     ALU_PACK,
-    ALU_PACKU,
     ALU_PACKH,
 
     // Sign-Extend
@@ -153,13 +157,6 @@ package ibex_pkg;
     ALU_SLT,
     ALU_SLTU,
 
-    // Ternary Bitmanip Operations
-    // RV32B
-    ALU_CMOV,
-    ALU_CMIX,
-    ALU_FSL,
-    ALU_FSR,
-
     // Single-Bit Operations
     // RV32B
     ALU_BSET,
@@ -167,28 +164,11 @@ package ibex_pkg;
     ALU_BINV,
     ALU_BEXT,
 
-    // Bit Compress / Decompress
-    // RV32B
-    ALU_BCOMPRESS,
-    ALU_BDECOMPRESS,
-
-    // Bit Field Place
-    // RV32B
-    ALU_BFP,
-
     // Carry-less Multiply
     // RV32B
     ALU_CLMUL,
     ALU_CLMULR,
-    ALU_CLMULH,
-
-    // Cyclic Redundancy Check
-    ALU_CRC32_B,
-    ALU_CRC32C_B,
-    ALU_CRC32_H,
-    ALU_CRC32C_H,
-    ALU_CRC32_W,
-    ALU_CRC32C_W
+    ALU_CLMULH
   } alu_op_e;
 
   typedef enum logic [1:0] {
@@ -355,14 +335,20 @@ package ibex_pkg;
     '{irq_ext: 1'b0, irq_int: 1'b0, lower_cause: 5'd02};
   localparam exc_cause_t ExcCauseBreakpoint =
     '{irq_ext: 1'b0, irq_int: 1'b0, lower_cause: 5'd03};
+  localparam exc_cause_t ExcCauseLoadAddrMisaligned  =
+    '{irq_ext: 1'b0, irq_int: 1'b0, lower_cause: 5'd04};
   localparam exc_cause_t ExcCauseLoadAccessFault  =
     '{irq_ext: 1'b0, irq_int: 1'b0, lower_cause: 5'd05};
+  localparam exc_cause_t ExcCauseStoreAddrMisaligned  =
+    '{irq_ext: 1'b0, irq_int: 1'b0, lower_cause: 5'd06};
   localparam exc_cause_t ExcCauseStoreAccessFault =
     '{irq_ext: 1'b0, irq_int: 1'b0, lower_cause: 5'd07};
   localparam exc_cause_t ExcCauseEcallUMode =
     '{irq_ext: 1'b0, irq_int: 1'b0, lower_cause: 5'd08};
   localparam exc_cause_t ExcCauseEcallMMode =
     '{irq_ext: 1'b0, irq_int: 1'b0, lower_cause: 5'd11};
+  localparam exc_cause_t ExcCauseCheriFault =
+    '{irq_ext: 1'b0, irq_int: 1'b0, lower_cause: 5'd28};
 
   // Internal NMI cause
   typedef enum logic [4:0] {
@@ -609,6 +595,9 @@ package ibex_pkg;
     CSR_MHPMCOUNTER29H = 12'hB9D,
     CSR_MHPMCOUNTER30H = 12'hB9E,
     CSR_MHPMCOUNTER31H = 12'hB9F,
+    CSR_MSHWM          = 12'hBC1,
+    CSR_MSHWMB         = 12'hBC2,
+    CSR_CDBG_CTRL      = 12'hBC4,
     // Unprivileged Counter/Timers (readable from U-mode subject to mcounteren)
     CSR_CYCLE          = 12'hC00,
     CSR_INSTRET        = 12'hC02,
@@ -708,6 +697,8 @@ package ibex_pkg;
   // RISC-V Foundation. Note this is allocated specifically to Ibex, should significant changes be
   // made a different architecture ID should be supplied.
   localparam logic [31:0] CSR_MARCHID_VALUE = {1'b0, 31'd22};
+  localparam logic [31:0] CSR_MARCHID_CHERIOT_VALUE = 32'hce1;
+
 
   // Machine Configuration Pointer
   // 0 indicates the configuration data structure does not exist. Ibex implementers may wish to
@@ -789,4 +780,17 @@ package ibex_pkg;
   };
 
   parameter pmp_mseccfg_t PmpMseccfgRst = '{rlb : 1'b0, mmwp: 1'b0, mml: 1'b0};
+
+  //////////////
+  // LSU      //
+  //////////////
+
+  typedef enum logic [3:0]  {
+    IDLE, WAIT_GNT_MIS, WAIT_RVALID_MIS, WAIT_GNT,
+    WAIT_RVALID_MIS_GNTS_DONE,
+    CTX_WAIT_GNT1, CTX_WAIT_GNT2, CTX_WAIT_RESP
+  } ls_fsm_e;
+
+  typedef enum logic [2:0] {CRX_IDLE, CRX_WAIT_RESP1, CRX_WAIT_RESP2} cap_rx_fsm_t;
+
 endpackage

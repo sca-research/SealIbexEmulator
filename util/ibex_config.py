@@ -21,6 +21,7 @@ class ConfigException(Exception):
 class Config:
     '''An object representing an Ibex configuration'''
     known_fields = [
+        ('BaseIsa', str),
         ('RV32E', bool),
         ('RV32M', str),
         ('RV32B', str),
@@ -33,6 +34,7 @@ class Config:
         ('ICacheScramble', bool),
         ('BranchPredictor', bool),
         ('DbgTriggerEn', bool),
+        ('DbgHwBreakNum', int),
         ('SecureIbex', bool),
         ('PMPEnable', bool),
         ('PMPGranularity', int),
@@ -60,6 +62,7 @@ class Config:
 
         self.params = yml
 
+        self.base_isa = Config.read_str('BaseIsa', yml)
         self.rv32e = Config.read_bool('RV32E', yml)
         self.rv32m = Config.read_str('RV32M', yml)
         self.rv32b = Config.read_str('RV32B', yml)
@@ -72,6 +75,7 @@ class Config:
         self.icache_scramble = Config.read_bool('ICacheScramble', yml)
         self.branch_predictor = Config.read_bool('BranchPredictor', yml)
         self.dbg_trigger_en = Config.read_bool('DbgTriggerEn', yml)
+        self.dbg_hw_break_num = Config.read_int('DbgHwBreakNum', yml)
         self.secure_ibex = Config.read_bool('SecureIbex', yml)
         self.pmp_enable = Config.read_bool('PMPEnable', yml)
         self.pmp_granularity = Config.read_int('PMPGranularity', yml)

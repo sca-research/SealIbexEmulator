@@ -113,6 +113,7 @@ module ibex_icache import ibex_pkg::*; #(
   logic                                   lookup_valid_ic1;
   logic [ADDR_W-1:IC_INDEX_HI+1]          lookup_addr_ic1;
   logic [IC_NUM_WAYS-1:0]                 tag_match_ic1;
+  logic [IC_NUM_WAYS-1:0]                 hit_way_ic1;
   logic                                   tag_hit_ic1;
   logic [IC_NUM_WAYS-1:0]                 tag_invalid_ic1;
   logic [IC_NUM_WAYS-1:0]                 lowest_invalid_way_ic1;
@@ -194,7 +195,7 @@ module ibex_icache import ibex_pkg::*; #(
     OUT_OF_RESET,
     AWAIT_SCRAMBLE_KEY,
     INVAL_CACHE,
-    IDLE
+    INVAL_IDLE
   } inval_state_e;
 
   inval_state_e          inval_state_q, inval_state_d;
@@ -317,6 +318,7 @@ module ibex_icache import ibex_pkg::*; #(
   /////////////////////
   // Tweak Infection //
   /////////////////////
+  // SEC_CM: ICACHE.MEM.ADDR_INFECTION
   if (TweakInfection) begin : gen_tweak_infection
     // Before writing the data to the data bank, XOR the tweak on top of the data.
     // When reading back the data, undo this XOR.
@@ -502,11 +504,18 @@ module ibex_icache import ibex_pkg::*; #(
 
   assign tag_hit_ic1 = |tag_match_ic1;
 
-  // Hit data mux. Un-XOR the tweak only for the matching way.
+  // A line can be held in more than one way. Read only the lowest matching way so that data from
+  // two ways is never merged before the ECC check.
+  assign hit_way_ic1[0] = tag_match_ic1[0];
+  for (genvar way = 1; way < IC_NUM_WAYS; way++) begin : gen_hit_way
+    assign hit_way_ic1[way] = tag_match_ic1[way] & ~|tag_match_ic1[way-1:0];
+  end
+
+  // Hit data mux. Un-XOR the tweak only for the selected way.
   always_comb begin
     hit_data_ecc_ic1 = 'b0;
     for (int way = 0; way < IC_NUM_WAYS; way++) begin
-      if (tag_match_ic1[way]) begin
+      if (hit_way_ic1[way]) begin
         hit_data_ecc_ic1 |= ic_data_rdata_i[way] ^ data_tweak_lw_ic1;
       end
     end
@@ -562,7 +571,6 @@ module ibex_icache import ibex_pkg::*; #(
     end
 
     // Data ECC checking
-    // Note - could generate for all ways and mux after
     for (genvar bank = 0; bank < IC_LINE_BEATS; bank++) begin : gen_ecc_banks
       prim_secded_inv_39_32_dec data_ecc_dec (
         .data_i     (hit_data_ecc_ic1[bank*BusSizeECC+:BusSizeECC]),
@@ -1213,7 +1221,7 @@ module ibex_icache import ibex_pkg::*; #(
 
     // Prevent other cache activity (cache lookups and cache allocations) whilst an invalidation is
     // in progress. Set to 1 by default as the only time we don't block is when the state machine is
-    // IDLE.
+    // INVAL_IDLE.
     inval_block_cache = 1'b1;
 
     unique case (inval_state_q)
@@ -1251,16 +1259,16 @@ module ibex_icache import ibex_pkg::*; #(
           inval_state_d = AWAIT_SCRAMBLE_KEY;
         end else if (&inval_index_q) begin
           // When the final index is written we're done
-            inval_state_d = IDLE;
+            inval_state_d = INVAL_IDLE;
         end
       end
-      IDLE: begin
+      INVAL_IDLE: begin
         // Usual running state
         if (icache_inval_i) begin
           ic_scr_key_req_o = 1'b1;
           inval_state_d = AWAIT_SCRAMBLE_KEY;
         end else begin
-          // Allow other cache activities whilst in IDLE and no invalidation has been requested
+          // Allow other cache activities whilst in INVAL_IDLE; no invalidation requested
           inval_block_cache = 1'b0;
         end
       end
@@ -1268,7 +1276,7 @@ module ibex_icache import ibex_pkg::*; #(
     endcase
   end
 
-  assign inval_active = inval_state_q != IDLE;
+  assign inval_active = inval_state_q != INVAL_IDLE;
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin

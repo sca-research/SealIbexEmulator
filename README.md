@@ -19,6 +19,11 @@ under the name ["Zero-riscy"](https://doi.org/10.1109/PATMOS.2017.8106976), and 
 contributed to [lowRISC](https://www.lowrisc.org) who maintains it and develops it further. It is
 under active development.
 
+Ibex supports [RV32I](https://docs.riscv.org/reference/isa/v20260120/unpriv/rv32.html) and
+[CHERIoT 1.0](https://github.com/CHERIoT-Platform/cheriot-sail/releases/download/v1.0/cheriot-architecture-v1.0.pdf)
+as base ISAs. The CHERIoT implementation was originally developed by Microsoft in the
+[cheriot-ibex](https://github.com/microsoft/cheriot-ibex) repository.
+
 ## Configuration
 
 Ibex offers several configuration parameters to meet the needs of various application scenarios.
@@ -47,8 +52,7 @@ Notes:
   Amber indicates that some verification has been performed, but the configuration is still experimental.
   Red indicates a configuration with minimal/no verification.
   Users must make their own assessment of verification readiness for any tapeout.
-* v.1.0.0 of the RISC-V Bit-Manipulation Extension is supported as well as the remaining sub-extensions of draft v.0.93 of the bitmanip spec.
-  The latter are *not ratified* and there may be changes before ratification.
+* The ratified v.1.0.0 RISC-V Bit-Manipulation Extension (Zba, Zbb, Zbc, Zbs) is supported, as well as the ratified Zbkb and Zbkx sub-extensions of the RISC-V Scalar Cryptography Extension.
   See [Standards Compliance](https://ibex-core.readthedocs.io/en/latest/01_overview/compliance.html) in the Ibex documentation for more information.
 
 ## Documentation

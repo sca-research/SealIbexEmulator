@@ -73,7 +73,8 @@ SpikeCosim::SpikeCosim(const std::string &isa_string, uint32_t start_pc,
   processor->set_ibex_flags(secure_ibex, icache_en);
   processor->set_debug_module_range(dm_start_addr, dm_end_addr);
 
-  initial_proc_setup(start_pc, start_mtvec, mhpm_counter_num);
+  bool rv32b_enabled = isa_string.find("Zb") != std::string::npos;
+  initial_proc_setup(start_pc, start_mtvec, mhpm_counter_num, rv32b_enabled);
 
   if (log) {
     processor->set_debug(true);
@@ -217,6 +218,9 @@ bool SpikeCosim::step(uint32_t write_reg, uint32_t write_reg_data, uint32_t pc,
   // (If the current step causes a synchronous trap, it will be
   //  recorded against the current pc)
   initial_spike_pc = (processor->get_state()->pc & 0xffffffff);
+  // A trap on a stepped instruction enters debug mode within this step, but
+  // the cpuctrlsts update depends on the mode the trap was taken in.
+  bool initial_spike_debug_mode = processor->get_state()->debug_mode;
   processor->step(1);
 
   // ISS
@@ -277,7 +281,7 @@ bool SpikeCosim::step(uint32_t write_reg, uint32_t write_reg_data, uint32_t pc,
         return false;
       }
 
-      handle_cpuctrl_exception_entry();
+      handle_cpuctrl_exception_entry(initial_spike_debug_mode);
 
       // This is all the checking possible when consider a
       // synchronously-trapping instruction that never retired.
@@ -533,8 +537,8 @@ void SpikeCosim::leave_nmi_mode() {
 #endif
 }
 
-void SpikeCosim::handle_cpuctrl_exception_entry() {
-  if (!processor->get_state()->debug_mode) {
+void SpikeCosim::handle_cpuctrl_exception_entry(bool debug_mode_at_trap) {
+  if (!debug_mode_at_trap) {
     bool old_sync_exc_seen = change_cpuctrlsts_sync_exc_seen(true);
     if (old_sync_exc_seen) {
       set_cpuctrlsts_double_fault_seen();
@@ -565,12 +569,20 @@ void SpikeCosim::set_cpuctrlsts_double_fault_seen() {
 }
 
 void SpikeCosim::initial_proc_setup(uint32_t start_pc, uint32_t start_mtvec,
-                                    uint32_t mhpm_counter_num) {
+                                    uint32_t mhpm_counter_num,
+                                    bool rv32b_enabled) {
   processor->get_state()->pc = start_pc;
   processor->get_state()->mtvec->write(start_mtvec);
 
   processor->get_state()->csrmap[CSR_MARCHID] =
       std::make_shared<const_csr_t>(processor.get(), CSR_MARCHID, IBEX_MARCHID);
+
+  uint32_t misa_val = processor->get_csr(CSR_MISA);
+  if (rv32b_enabled) {
+    misa_val |= 1 << 1;
+  }
+  processor->get_state()->csrmap[CSR_MISA] =
+      std::make_shared<const_csr_t>(processor.get(), CSR_MISA, misa_val);
 
   processor->set_mmu_capability(IMPL_MMU_SBARE);
 
@@ -821,16 +833,6 @@ void SpikeCosim::fixup_csr(int csr_num, uint32_t csr_val) {
       // For Ibex, mtvec.MODE is set to vectored and
       // mtvec.BASE must be 256-byte aligned
       reg_t new_val = (csr_val & mtvec_and_mask) | mtvec_or_mask;
-#ifdef OLD_SPIKE
-      processor->set_csr(csr_num, new_val);
-#else
-      processor->put_csr(csr_num, new_val);
-#endif
-      break;
-    }
-    case CSR_MISA: {
-      // For Ibex, misa is hardwired
-      reg_t new_val = 0x40901104;
 #ifdef OLD_SPIKE
       processor->set_csr(csr_num, new_val);
 #else

@@ -38,12 +38,19 @@ Precise details of fetch timing will depend upon the memory system Ibex is conne
 
 If data independent timing is needed for branches, turn off the branch prediction feature as it is :ref:`experimental<branch-prediction>`.
 
+.. _dummy-instruction-insertion:
+
 Dummy Instruction Insertion
 ---------------------------
 
 When enabled (via the **dummy_instr_en** control bit in the **cpuctrl** register), dummy instructions will be inserted at random intervals into the execution pipeline.
 The dummy instructions have no functional impact on processor state, but add some difficult-to-predict timing and power disruption to executed code.
 This disruption makes it more difficult for an attacker to infer what is being executed, and also makes it more difficult to execute precisely timed fault injection attacks.
+
+Dummy instructions do not count as a single step and do not increment ``minstret`` or ``mhpmcounter10`` (compressed instructions retired).
+They do take cycles, so they can show in ``mcycle`` and, where implemented and enabled, in the multiply and divide wait counters ``mhpmcounter11`` and ``mhpmcounter12``.
+No dummy instruction is inserted directly before a Zcmp instruction or between its micro-ops.
+Zcmp instructions do not count towards the intervals below, so a run of them lengthens the gap between dummy instructions.
 
 The frequency of injected instructions can be tuned via the **dummy_instr_mask** bits in the **cpuctrl** register.
 
@@ -69,6 +76,8 @@ This will make the insertion interval of dummy instructions much harder for an a
 Note that the dummy instruction feature inserts multiply and divide instructions.
 The core must be configured with a multiplier (`RV32M != ibex_pkg::RV32MNone`) or errors will occur using this feature.
 
+.. _lockstep:
+
 Dual core lockstep
 ------------------
 
@@ -76,14 +85,17 @@ This configuration option instantiates a second copy of the core logic, referred
 The shadow core executes using a delayed version of all inputs supplied to the main core.
 All outputs of the shadow core are compared against a delayed version of the outputs of the main core.
 Any mismatch between the two sets of outputs will trigger an internal major alert.
+The shadow bus signals (``data_req_shadow_o``, ``data_addr_shadow_o``, etc. and ``instr_req_shadow_o``, ``instr_addr_shadow_o``) are exposed at the ``ibex_top`` level so that users can conduct additional security checks on integration-specific bus protocol conversion modules (see :ref:`core-integration` for the full signal list).
 
 Note that the register file and icache RAMs are not duplicated since these units are covered by other countermeasures.
+
+.. _bus-integrity:
 
 Bus integrity checking
 ----------------------
 
 Extra signals are available alongside the instruction and data side memory channels to support bus integrity checking.
-When the SecureIbex parameter is set, incoming data will be checked against the supplied checkbits.
+When the MemECC parameter is set, incoming data will be checked against the supplied checkbits.
 An :ref:`internal interrupt<internal-interrupts>` will be generated and a bus major alert signalled if there is a mismatch.
 Where load data has bad checkbits the write to the load's destination register will be suppressed.
 Write data can be checked against the supplied checkbits at its destination to confirm integrity.
@@ -96,6 +108,8 @@ Instead, two instances of the register file are used.
 The first instance is driven by the main core and holds the data itself.
 The second instance is driven by the shadow core and holds the corresponding ECC.
 ECC checking is conducted inside the shadow core.
+In addition, the register file read addresses and write port (write address, write enable, and write data) of the main core are compared against the ones of the shadow core in the dual core lockstep.
+Relying on the ECC check alone would miss a faulty value whose check bits happen to match those of the correct value, e.g., a bitwise inverted result or a read from a register holding the inverse.
 This can be useful to detect fault injection attacks since the register file covers a reasonably large area.
 No attempt is made to correct detected errors, but an internal major alert is signaled for the system to take action.
 
@@ -107,8 +121,10 @@ Instead, ECC protection is added to the ICache.
 When an ECC error is detected a minor alert is signaled.
 See :ref:`icache-ecc` for more information.
 
+.. _icache-tweak-infection:
+
 ICache Tweak Infection
-----------
+----------------------
 
 In addition to the ICache ECC, SecureIbex also uses a tweak infection based countermeasure.
 After computing the ECC and before writing to the data or tag banks, the ICache XORs a tweak to the data.
